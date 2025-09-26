@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/search")
+@RequestMapping("/api/search")
 @Tag(name = "Flight Search", description = "Flight search and pricing endpoints")
 public class SearchController {
     

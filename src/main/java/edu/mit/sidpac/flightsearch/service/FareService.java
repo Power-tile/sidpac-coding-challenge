@@ -26,21 +26,21 @@ public class FareService {
     private AirlineRepository airlineRepository;
     
     public List<Fare> getAllFares() {
-        return fareRepository.findByIsActiveTrue();
+        return fareRepository.findAll();
     }
     
     public List<Fare> getFaresByAirline(String airlineCode) {
-        return fareRepository.findActiveFaresByAirlineCode(airlineCode);
+        return fareRepository.findFaresByAirlineCode(airlineCode);
     }
     
     public Optional<Fare> getFareById(String id) {
-        return fareRepository.findById(id).filter(Fare::getIsActive);
+        return fareRepository.findById(id);
     }
     
     public Fare createFare(String airlineCode, BigDecimal basePrice, String fareName, 
                           String description, Set<FareRestrictionData> restrictions) {
         
-        Airline airline = airlineRepository.findByCodeAndIsActiveTrue(airlineCode)
+        Airline airline = airlineRepository.findByCode(airlineCode)
                 .orElseThrow(() -> new RuntimeException("Airline not found: " + airlineCode));
         
         Fare fare = new Fare(airline, basePrice, fareName, description);
@@ -65,9 +65,6 @@ public class FareService {
         Fare fare = fareRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fare not found: " + id));
         
-        if (!fare.getIsActive()) {
-            throw new RuntimeException("Fare not found: " + id);
-        }
         
         fare.setBasePrice(basePrice);
         fare.setFareName(fareName);
@@ -91,8 +88,7 @@ public class FareService {
         Fare fare = fareRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fare not found: " + id));
         
-        fare.setIsActive(false);
-        fareRepository.save(fare);
+        fareRepository.delete(fare);
     }
     
     public static class FareRestrictionData {

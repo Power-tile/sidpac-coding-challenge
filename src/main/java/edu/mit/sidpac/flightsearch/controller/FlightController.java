@@ -2,9 +2,10 @@ package edu.mit.sidpac.flightsearch.controller;
 
 import edu.mit.sidpac.flightsearch.entity.Flight;
 import edu.mit.sidpac.flightsearch.entity.User;
+import edu.mit.sidpac.flightsearch.exception.InsufficientPermissionsException;
+import edu.mit.sidpac.flightsearch.service.AuthService;
 import edu.mit.sidpac.flightsearch.service.FlightService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -19,24 +20,22 @@ import java.util.Optional;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/flights")
+@RequestMapping("/api/flights")
 @Tag(name = "Flights", description = "Flight management endpoints")
-@SecurityRequirement(name = "bearerAuth")
 public class FlightController {
     
     @Autowired
     private FlightService flightService;
     
+    @Autowired
+    private AuthService authService;
+    
     @GetMapping
     @Operation(summary = "Get all flights", description = "Retrieve all active flights with optional pagination")
     public ResponseEntity<?> getAllFlights(Pageable pageable) {
-        if (pageable.getPageSize() > 0) {
-            Page<Flight> flights = flightService.getAllFlights(pageable);
-            return ResponseEntity.ok(flights);
-        } else {
-            List<Flight> flights = flightService.getAllFlights();
-            return ResponseEntity.ok(flights);
-        }
+        // Always return a simple list, not a Page object
+        List<Flight> flights = flightService.getAllFlights();
+        return ResponseEntity.ok(flights);
     }
     
     @GetMapping("/{id}")
@@ -53,12 +52,7 @@ public class FlightController {
     public ResponseEntity<Flight> createFlight(@RequestBody CreateFlightRequest request) {
         try {
             // Get current user from security context
-            String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
-                    .getAuthentication().getName();
-            // Note: In a real implementation, you'd inject the AuthService to get the full user object
-            // For now, we'll create a mock user - this should be improved in production
-            User currentUser = new User();
-            currentUser.setRole(edu.mit.sidpac.flightsearch.entity.UserRole.ADMIN);
+            User currentUser = authService.getCurrentUser();
             
             Flight flight = flightService.createFlight(
                     currentUser,
@@ -69,8 +63,13 @@ public class FlightController {
                     request.getArrivalTime(),
                     request.getAirlineCodes()
             );
-            return ResponseEntity.ok(flight);
+            return ResponseEntity.status(201).body(flight);
+        } catch (InsufficientPermissionsException e) {
+            return ResponseEntity.status(403).build();
         } catch (RuntimeException e) {
+            // Log the exception for debugging
+            System.err.println("Flight creation failed: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }
@@ -80,7 +79,11 @@ public class FlightController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Flight> updateFlight(@PathVariable String id, @RequestBody UpdateFlightRequest request) {
         try {
+            // Get current user from security context
+            User currentUser = authService.getCurrentUser();
+            
             Flight flight = flightService.updateFlight(
+                    currentUser,
                     id,
                     request.getFlightNumber(),
                     request.getSourceAirportCode(),
@@ -90,6 +93,8 @@ public class FlightController {
                     request.getAirlineCodes()
             );
             return ResponseEntity.ok(flight);
+        } catch (InsufficientPermissionsException e) {
+            return ResponseEntity.status(403).build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -100,8 +105,13 @@ public class FlightController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteFlight(@PathVariable String id) {
         try {
-            flightService.deleteFlight(id);
+            // Get current user from security context
+            User currentUser = authService.getCurrentUser();
+            
+            flightService.deleteFlight(currentUser, id);
             return ResponseEntity.ok().build();
+        } catch (InsufficientPermissionsException e) {
+            return ResponseEntity.status(403).build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }

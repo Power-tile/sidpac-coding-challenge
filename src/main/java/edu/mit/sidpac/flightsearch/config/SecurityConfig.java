@@ -1,7 +1,7 @@
 package edu.mit.sidpac.flightsearch.config;
 
-import edu.mit.sidpac.flightsearch.security.JwtAuthenticationEntryPoint;
-import edu.mit.sidpac.flightsearch.security.JwtAuthenticationFilter;
+import edu.mit.sidpac.flightsearch.security.SessionAuthenticationFilter;
+import edu.mit.sidpac.flightsearch.service.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,11 +10,12 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,10 +28,10 @@ import java.util.Arrays;
 public class SecurityConfig {
     
     @Autowired
-    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private UserDetailsServiceImpl userDetailsService;
     
     @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private SessionAuthenticationFilter sessionAuthenticationFilter;
     
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -49,14 +50,35 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/search/**").permitAll()
-                .requestMatchers("/api/flights", "/api/flights/*", "/api/flights/airline/**", "/api/flights/search").permitAll()
+                .requestMatchers("GET", "/api/flights", "/api/flights/*", "/api/flights/airline/**", "/api/flights/search").permitAll()
+                .requestMatchers("POST", "/api/flights").hasRole("ADMIN")
+                .requestMatchers("PUT", "/api/flights/*").hasRole("ADMIN")
+                .requestMatchers("DELETE", "/api/flights/*").hasRole("ADMIN")
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .userDetailsService(userDetailsService)
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false)
+            )
+            .formLogin(form -> form
+                .loginPage("/auth/login")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/auth/logout")
+                .logoutSuccessUrl("/")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+                .permitAll()
+            )
+            .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }

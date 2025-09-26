@@ -76,4 +76,13 @@ public class Trip {
     public int getLegCount() {
         return flights != null ? flights.size() : 0;
     }
+    
+    // JSON serialization helpers
+    public String getAirlineCode() {
+        return airline;
+    }
+    
+    public List<Flight> getLegs() {
+        return flights;
+    }
 }

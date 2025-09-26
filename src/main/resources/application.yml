@@ -19,9 +19,7 @@ spring:
     
   sql:
     init:
-      mode: always
-      data-locations: classpath:data.sql
-      continue-on-error: true
+      mode: never
     
   security:
     user:
@@ -32,7 +30,7 @@ spring:
 server:
   port: 8080
   servlet:
-    context-path: /api
+    context-path: /
 
 management:
   endpoints:
@@ -50,11 +48,6 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-# JWT Configuration
-jwt:
-  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
-  expiration: 86400000 # 24 hours in milliseconds
-  refresh-expiration: 604800000 # 7 days in milliseconds
 
 # API Documentation
 springdoc:

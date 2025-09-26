@@ -14,22 +14,22 @@ import java.util.Optional;
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, String> {
     
-    Optional<UserSession> findByTokenHashAndIsActiveTrue(String tokenHash);
+    Optional<UserSession> findByTokenHash(String tokenHash);
     
-    Optional<UserSession> findByRefreshTokenHashAndIsActiveTrue(String refreshTokenHash);
+    Optional<UserSession> findByRefreshTokenHash(String refreshTokenHash);
     
-    List<UserSession> findByUserIdAndIsActiveTrue(String userId);
+    List<UserSession> findByUserId(String userId);
     
-    @Query("SELECT s FROM UserSession s WHERE s.user.id = :userId AND s.isActive = true AND s.expiresAt > :now")
+    @Query("SELECT s FROM UserSession s WHERE s.user.id = :userId AND s.expiresAt > :now")
     List<UserSession> findActiveSessionsByUserId(@Param("userId") String userId, @Param("now") LocalDateTime now);
     
     @Modifying
-    @Query("UPDATE UserSession s SET s.isActive = false WHERE s.user.id = :userId")
-    void deactivateAllSessionsByUserId(@Param("userId") String userId);
+    @Query("DELETE FROM UserSession s WHERE s.user.id = :userId")
+    void deleteAllSessionsByUserId(@Param("userId") String userId);
     
     @Modifying
-    @Query("UPDATE UserSession s SET s.isActive = false WHERE s.expiresAt < :now")
-    void deactivateExpiredSessions(@Param("now") LocalDateTime now);
+    @Query("DELETE FROM UserSession s WHERE s.expiresAt < :now")
+    void deleteExpiredSessions(@Param("now") LocalDateTime now);
     
     @Modifying
     @Query("DELETE FROM UserSession s WHERE s.refreshExpiresAt < :now")

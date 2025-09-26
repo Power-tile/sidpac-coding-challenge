@@ -10,7 +10,6 @@ CREATE TABLE users (
     last_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'ADMIN' CHECK (role IN ('ADMIN')),
     assigned_airline_code TEXT,
-    is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -26,7 +25,6 @@ CREATE TABLE airlines (
     code TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     country TEXT,
-    is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -41,7 +39,6 @@ CREATE TABLE airports (
     name TEXT NOT NULL,
     city TEXT NOT NULL,
     country TEXT NOT NULL,
-    is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -58,7 +55,6 @@ CREATE TABLE flights (
     destination_airport_id TEXT NOT NULL,
     departure_time DATETIME NOT NULL,
     arrival_time DATETIME NOT NULL,
-    is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (source_airport_id) REFERENCES airports(id),
@@ -92,7 +88,6 @@ CREATE TABLE fares (
     base_price DECIMAL(10,2) NOT NULL,
     fare_name TEXT NOT NULL,
     description TEXT,
-    is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (airline_id) REFERENCES airlines(id) ON DELETE CASCADE
@@ -124,7 +119,6 @@ CREATE TABLE user_sessions (
     refresh_token_hash TEXT NOT NULL,
     expires_at DATETIME NOT NULL,
     refresh_expires_at DATETIME NOT NULL,
-    is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

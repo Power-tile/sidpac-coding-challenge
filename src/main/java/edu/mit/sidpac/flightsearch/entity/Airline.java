@@ -1,5 +1,6 @@
 package edu.mit.sidpac.flightsearch.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -65,6 +66,7 @@ public class Airline extends BaseEntity {
         this.country = country;
     }
     
+    @JsonIgnore
     public Set<FlightAirline> getFlightAirlines() {
         return flightAirlines;
     }
@@ -73,6 +75,7 @@ public class Airline extends BaseEntity {
         this.flightAirlines = flightAirlines;
     }
     
+    @JsonIgnore
     public Set<Fare> getFares() {
         return fares;
     }

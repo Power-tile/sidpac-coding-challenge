@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Authentication and user management endpoints")
 public class AuthController {
     
@@ -20,7 +20,7 @@ public class AuthController {
     private AuthService authService;
     
     @PostMapping("/login")
-    @Operation(summary = "User login", description = "Authenticate user and return JWT tokens")
+    @Operation(summary = "User login", description = "Authenticate user and return session ID")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         try {
             AuthResponse response = authService.login(request);
@@ -43,24 +43,11 @@ public class AuthController {
     
     @PostMapping("/logout")
     @Operation(summary = "User logout", description = "Logout user and invalidate session")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<Void> logout(@RequestHeader("X-Session-ID") String sessionId) {
         try {
-            String jwt = token.substring(7); // Remove "Bearer " prefix
-            authService.logout(jwt);
+            authService.logout(sessionId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-    
-    @PostMapping("/refresh")
-    @Operation(summary = "Refresh token", description = "Get new access token using refresh token")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestHeader("Authorization") String refreshToken) {
-        try {
-            String jwt = refreshToken.substring(7); // Remove "Bearer " prefix
-            AuthResponse response = authService.refreshToken(jwt);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }

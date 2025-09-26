@@ -30,39 +30,28 @@ git clone <repository-url>
 cd sidpac-coding-challenge
 ```
 
-### 2. Database Setup
+### 2. Initialize Database
 
-The application uses SQLite, which requires no database server setup. The database will be automatically created when you first run the application.
-
-#### Option A: Automatic Database Initialization (Recommended)
-The application will automatically create the database and load initial data on first startup:
+**Important**: For first-time setup, you need to manually initialize the database with the complete schema and sample data.
 
 ```bash
-# Just run the application - database will be created automatically
-mvn spring-boot:run
-```
-
-#### Option B: Manual Database Initialization
-If you want to manually initialize the database or reset it:
-
-```bash
-# Create data directory
+# Create dir for SQLite DB
 mkdir -p data
-
-# Initialize database with schema and sample data
+# Initialize the database with schema and sample data
 sqlite3 data/flight_search.db < scripts/init-database.sql
 ```
 
-#### Option C: Reset Database
-To reset the database with fresh data:
+This command will:
+- Create all database tables (users, airlines, airports, flights, fares, etc.)
+- Insert comprehensive sample data including:
+  - 20 airports (US and international)
+  - 16 airlines (US and international carriers)
+  - 18 sample flights with realistic schedules
+  - 25+ fare rules with complex pricing restrictions
+  - 5 admin users (1 super admin + 4 airline-specific admins)
+  - Codeshare relationships between airlines
 
-```bash
-# Remove existing database
-rm -f data/flight_search.db
-
-# Recreate with fresh data
-sqlite3 data/flight_search.db < scripts/init-database.sql
-```
+**Note**: This is a complete database initialization script that must be run manually for initial setup. Spring Boot will not automatically load any data files.
 
 ### 3. Build and Run the Application
 
@@ -176,7 +165,7 @@ Expected results:
 - Airports: 20
 - Airlines: 16  
 - Flights: 18
-- Users: 8
+- Users: 5
 
 ### 5. Access API Documentation
 
@@ -195,7 +184,6 @@ The database comes pre-loaded with comprehensive test data:
 - **Delta Admin**: `dl_admin` / `dl_admin@flightsearch.com` - DL airline management  
 - **United Admin**: `ua_admin` / `ua_admin@flightsearch.com` - UA airline management
 - **JetBlue Admin**: `b6_admin` / `b6_admin@flightsearch.com` - B6 airline management
-- **Additional Admins**: `user1`, `user2`, `user3` (no assigned airline)
 
 #### Sample Data Includes:
 - **20 Airports**: Major US and international airports (BOS, LAX, JFK, LHR, etc.)
@@ -243,9 +231,7 @@ spring:
     driver-class-name: org.sqlite.JDBC
   sql:
     init:
-      mode: always
-      data-locations: classpath:data.sql
-      continue-on-error: true
+      mode: never
 
 # JWT Settings
 jwt:
@@ -347,6 +333,19 @@ View coverage report at: `target/site/jacoco/index.html`
 - Flights can have multiple airlines (codeshare)
 - Fares belong to airlines and can have multiple restrictions
 - Users can be assigned to specific airlines for admin access
+
+### Table Details
+
+| Table | Columns | Description |
+|-------|---------|-------------|
+| **users** | `id, username, email, password_hash, first_name, last_name, role, assigned_airline_code, created_at, updated_at` | User accounts with ADMIN role and optional airline assignment |
+| **airlines** | `id, code, name, country, created_at, updated_at` | Airline information with unique codes (AA, DL, UA, etc.) |
+| **airports** | `id, code, name, city, country, created_at, updated_at` | Airport data with IATA codes (BOS, LAX, JFK, etc.) |
+| **flights** | `id, flight_number, source_airport_id, destination_airport_id, departure_time, arrival_time, created_at, updated_at` | Flight schedules with source/destination airports and timing |
+| **flight_airlines** | `id, flight_id, airline_id, created_at` | Many-to-many relationship for codeshare flights (one flight, multiple airlines) |
+| **fares** | `id, airline_id, base_price, fare_name, description, created_at, updated_at` | Pricing rules per airline with base prices and descriptions |
+| **fare_restrictions** | `id, fare_id, restriction_type, restriction_value, created_at` | Fare limitations (ENDPOINT, DEPARTURE_TIME, MULTI_LEG) |
+| **user_sessions** | `id, user_id, token_hash, refresh_token_hash, expires_at, refresh_expires_at, created_at` | JWT session management with access/refresh tokens |
 
 ## Development
 

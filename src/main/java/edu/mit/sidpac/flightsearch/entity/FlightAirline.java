@@ -1,5 +1,6 @@
 package edu.mit.sidpac.flightsearch.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -23,6 +24,7 @@ public class FlightAirline extends BaseEntity {
     }
     
     // Getters and Setters
+    @JsonIgnore
     public Flight getFlight() {
         return flight;
     }

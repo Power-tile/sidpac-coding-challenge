@@ -14,16 +14,12 @@ public interface AirportRepository extends JpaRepository<Airport, String> {
     
     Optional<Airport> findByCode(String code);
     
-    Optional<Airport> findByCodeAndIsActiveTrue(String code);
+    List<Airport> findByCity(String city);
     
-    List<Airport> findByIsActiveTrue();
+    List<Airport> findByCountry(String country);
     
-    List<Airport> findByCityAndIsActiveTrue(String city);
-    
-    List<Airport> findByCountryAndIsActiveTrue(String country);
-    
-    @Query("SELECT a FROM Airport a WHERE a.isActive = true AND (a.code LIKE %:searchTerm% OR a.name LIKE %:searchTerm% OR a.city LIKE %:searchTerm%)")
-    List<Airport> findBySearchTermAndIsActiveTrue(@Param("searchTerm") String searchTerm);
+    @Query("SELECT a FROM Airport a WHERE a.code LIKE %:searchTerm% OR a.name LIKE %:searchTerm% OR a.city LIKE %:searchTerm%")
+    List<Airport> findBySearchTerm(@Param("searchTerm") String searchTerm);
     
     boolean existsByCode(String code);
 }

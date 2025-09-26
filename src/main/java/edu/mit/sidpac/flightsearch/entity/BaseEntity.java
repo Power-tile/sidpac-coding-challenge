@@ -24,8 +24,6 @@ public abstract class BaseEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
     
     // Constructors
     public BaseEntity() {}
@@ -55,11 +53,4 @@ public abstract class BaseEntity {
         this.updatedAt = updatedAt;
     }
     
-    public Boolean getIsActive() {
-        return isActive;
-    }
-    
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
 }

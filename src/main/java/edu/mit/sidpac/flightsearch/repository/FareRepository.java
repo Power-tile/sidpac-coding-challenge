@@ -13,35 +13,31 @@ import java.util.List;
 @Repository
 public interface FareRepository extends JpaRepository<Fare, String> {
     
-    List<Fare> findByIsActiveTrue();
-    
-    List<Fare> findByAirlineCodeAndIsActiveTrue(String airlineCode);
-    
-    @Query("SELECT f FROM Fare f WHERE f.isActive = true AND f.airline.code = :airlineCode")
-    List<Fare> findActiveFaresByAirlineCode(@Param("airlineCode") String airlineCode);
+    @Query("SELECT f FROM Fare f WHERE f.airline.code = :airlineCode")
+    List<Fare> findFaresByAirlineCode(@Param("airlineCode") String airlineCode);
     
     @Query("SELECT f FROM Fare f " +
            "JOIN f.restrictions r " +
-           "WHERE f.isActive = true AND f.airline.code = :airlineCode " +
+           "WHERE f.airline.code = :airlineCode " +
            "AND r.restrictionType = :restrictionType")
     List<Fare> findFaresByAirlineAndRestrictionType(@Param("airlineCode") String airlineCode, 
                                                    @Param("restrictionType") RestrictionType restrictionType);
     
     @Query("SELECT f FROM Fare f " +
            "JOIN f.restrictions r " +
-           "WHERE f.isActive = true AND f.airline.code = :airlineCode " +
+           "WHERE f.airline.code = :airlineCode " +
            "AND r.restrictionType = :restrictionType AND r.restrictionValue = :restrictionValue")
     List<Fare> findFaresByAirlineAndRestriction(@Param("airlineCode") String airlineCode, 
                                                @Param("restrictionType") RestrictionType restrictionType,
                                                @Param("restrictionValue") String restrictionValue);
     
-    @Query("SELECT f FROM Fare f WHERE f.isActive = true AND f.airline.code = :airlineCode " +
+    @Query("SELECT f FROM Fare f WHERE f.airline.code = :airlineCode " +
            "AND f.basePrice BETWEEN :minPrice AND :maxPrice")
     List<Fare> findFaresByAirlineAndPriceRange(@Param("airlineCode") String airlineCode, 
                                               @Param("minPrice") BigDecimal minPrice, 
                                               @Param("maxPrice") BigDecimal maxPrice);
     
-    @Query("SELECT f FROM Fare f WHERE f.isActive = true AND f.airline.code = :airlineCode " +
+    @Query("SELECT f FROM Fare f WHERE f.airline.code = :airlineCode " +
            "AND NOT EXISTS (SELECT r FROM FareRestriction r WHERE r.fare = f)")
     List<Fare> findFaresWithoutRestrictions(@Param("airlineCode") String airlineCode);
 }

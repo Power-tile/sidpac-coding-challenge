@@ -106,4 +106,20 @@ public class Flight extends BaseEntity {
     public String getRoute() {
         return sourceAirport.getCode() + " → " + destinationAirport.getCode();
     }
+    
+    // JSON serialization helpers
+    public String getSourceAirportCode() {
+        return sourceAirport != null ? sourceAirport.getCode() : null;
+    }
+    
+    public String getDestinationAirportCode() {
+        return destinationAirport != null ? destinationAirport.getCode() : null;
+    }
+    
+    public String getAirlineCode() {
+        if (flightAirlines != null && !flightAirlines.isEmpty()) {
+            return flightAirlines.iterator().next().getAirline().getCode();
+        }
+        return null;
+    }
 }

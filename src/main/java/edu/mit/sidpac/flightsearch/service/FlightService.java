@@ -5,6 +5,7 @@ import edu.mit.sidpac.flightsearch.entity.Airport;
 import edu.mit.sidpac.flightsearch.entity.Flight;
 import edu.mit.sidpac.flightsearch.entity.FlightAirline;
 import edu.mit.sidpac.flightsearch.entity.User;
+import edu.mit.sidpac.flightsearch.exception.InsufficientPermissionsException;
 import edu.mit.sidpac.flightsearch.repository.AirlineRepository;
 import edu.mit.sidpac.flightsearch.repository.AirportRepository;
 import edu.mit.sidpac.flightsearch.repository.FlightRepository;
@@ -36,7 +37,7 @@ public class FlightService {
     private PermissionService permissionService;
     
     public List<Flight> getAllFlights() {
-        return flightRepository.findByIsActiveTrue();
+        return flightRepository.findAll();
     }
     
     public Page<Flight> getAllFlights(Pageable pageable) {
@@ -44,30 +45,49 @@ public class FlightService {
     }
     
     public Optional<Flight> getFlightById(String id) {
-        return flightRepository.findById(id).filter(Flight::getIsActive);
+        return flightRepository.findById(id);
     }
     
     public Flight createFlight(User user, String flightNumber, String sourceAirportCode, String destinationAirportCode,
                               LocalDateTime departureTime, LocalDateTime arrivalTime, Set<String> airlineCodes) {
         
-        Airport sourceAirport = airportRepository.findByCodeAndIsActiveTrue(sourceAirportCode)
+        // Validate airline codes
+        if (airlineCodes == null || airlineCodes.isEmpty()) {
+            throw new RuntimeException("Airline codes cannot be empty");
+        }
+        
+        // Validate departure time
+        if (departureTime.isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Departure time cannot be in the past");
+        }
+        
+        // Validate arrival time
+        if (arrivalTime.isBefore(departureTime)) {
+            throw new RuntimeException("Arrival time cannot be before departure time");
+        }
+        
+        Airport sourceAirport = airportRepository.findByCode(sourceAirportCode)
                 .orElseThrow(() -> new RuntimeException("Source airport not found: " + sourceAirportCode));
         
-        Airport destinationAirport = airportRepository.findByCodeAndIsActiveTrue(destinationAirportCode)
+        Airport destinationAirport = airportRepository.findByCode(destinationAirportCode)
                 .orElseThrow(() -> new RuntimeException("Destination airport not found: " + destinationAirportCode));
+        
+        // Validate airline codes and permissions before creating the flight
+        for (String airlineCode : airlineCodes) {
+            if (!permissionService.canManageFlights(user, airlineCode)) {
+                throw new InsufficientPermissionsException("Insufficient permissions to manage airline: " + airlineCode);
+            }
+            
+            Airline airline = airlineRepository.findByCode(airlineCode)
+                    .orElseThrow(() -> new RuntimeException("Airline not found: " + airlineCode));
+        }
         
         Flight flight = new Flight(flightNumber, sourceAirport, destinationAirport, departureTime, arrivalTime);
         flight = flightRepository.save(flight);
         
-        // Add airline codeshares with permission check
+        // Add airline codeshares (validation already done above)
         for (String airlineCode : airlineCodes) {
-            if (!permissionService.canManageFlights(user, airlineCode)) {
-                throw new RuntimeException("Insufficient permissions to manage airline: " + airlineCode);
-            }
-            
-            Airline airline = airlineRepository.findByCodeAndIsActiveTrue(airlineCode)
-                    .orElseThrow(() -> new RuntimeException("Airline not found: " + airlineCode));
-            
+            Airline airline = airlineRepository.findByCode(airlineCode).orElseThrow();
             FlightAirline flightAirline = new FlightAirline(flight, airline);
             flight.getFlightAirlines().add(flightAirline);
         }
@@ -75,21 +95,39 @@ public class FlightService {
         return flightRepository.save(flight);
     }
     
-    public Flight updateFlight(String id, String flightNumber, String sourceAirportCode, 
+    public Flight updateFlight(User user, String id, String flightNumber, String sourceAirportCode, 
                               String destinationAirportCode, LocalDateTime departureTime, 
                               LocalDateTime arrivalTime, Set<String> airlineCodes) {
         
         Flight flight = flightRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Flight not found: " + id));
         
-        if (!flight.getIsActive()) {
-            throw new RuntimeException("Flight not found: " + id);
+        // Check permissions for all airlines associated with this flight
+        for (FlightAirline flightAirline : flight.getFlightAirlines()) {
+            if (!permissionService.canManageFlights(user, flightAirline.getAirline().getCode())) {
+                throw new InsufficientPermissionsException("Insufficient permissions to update this flight");
+            }
         }
         
-        Airport sourceAirport = airportRepository.findByCodeAndIsActiveTrue(sourceAirportCode)
+        // Validate airline codes
+        if (airlineCodes == null || airlineCodes.isEmpty()) {
+            throw new RuntimeException("Airline codes cannot be empty");
+        }
+        
+        // Validate departure time
+        if (departureTime.isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Departure time cannot be in the past");
+        }
+        
+        // Validate arrival time
+        if (arrivalTime.isBefore(departureTime)) {
+            throw new RuntimeException("Arrival time cannot be before departure time");
+        }
+        
+        Airport sourceAirport = airportRepository.findByCode(sourceAirportCode)
                 .orElseThrow(() -> new RuntimeException("Source airport not found: " + sourceAirportCode));
         
-        Airport destinationAirport = airportRepository.findByCodeAndIsActiveTrue(destinationAirportCode)
+        Airport destinationAirport = airportRepository.findByCode(destinationAirportCode)
                 .orElseThrow(() -> new RuntimeException("Destination airport not found: " + destinationAirportCode));
         
         flight.setFlightNumber(flightNumber);
@@ -98,10 +136,14 @@ public class FlightService {
         flight.setDepartureTime(departureTime);
         flight.setArrivalTime(arrivalTime);
         
-        // Update airline codeshares
+        // Update airline codeshares with permission check
         flight.getFlightAirlines().clear();
         for (String airlineCode : airlineCodes) {
-            Airline airline = airlineRepository.findByCodeAndIsActiveTrue(airlineCode)
+            if (!permissionService.canManageFlights(user, airlineCode)) {
+                throw new InsufficientPermissionsException("Insufficient permissions to manage airline: " + airlineCode);
+            }
+            
+            Airline airline = airlineRepository.findByCode(airlineCode)
                     .orElseThrow(() -> new RuntimeException("Airline not found: " + airlineCode));
             
             FlightAirline flightAirline = new FlightAirline(flight, airline);
@@ -111,12 +153,18 @@ public class FlightService {
         return flightRepository.save(flight);
     }
     
-    public void deleteFlight(String id) {
+    public void deleteFlight(User user, String id) {
         Flight flight = flightRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Flight not found: " + id));
         
-        flight.setIsActive(false);
-        flightRepository.save(flight);
+        // Check permissions for all airlines associated with this flight
+        for (FlightAirline flightAirline : flight.getFlightAirlines()) {
+            if (!permissionService.canManageFlights(user, flightAirline.getAirline().getCode())) {
+                throw new InsufficientPermissionsException("Insufficient permissions to delete this flight");
+            }
+        }
+        
+        flightRepository.delete(flight);
     }
     
     public List<Flight> searchFlights(String sourceCode, String destinationCode) {

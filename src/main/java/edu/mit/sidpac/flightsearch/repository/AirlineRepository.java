@@ -14,14 +14,10 @@ public interface AirlineRepository extends JpaRepository<Airline, String> {
     
     Optional<Airline> findByCode(String code);
     
-    Optional<Airline> findByCodeAndIsActiveTrue(String code);
+    List<Airline> findByCountry(String country);
     
-    List<Airline> findByIsActiveTrue();
-    
-    List<Airline> findByCountryAndIsActiveTrue(String country);
-    
-    @Query("SELECT a FROM Airline a WHERE a.isActive = true AND (a.code LIKE %:searchTerm% OR a.name LIKE %:searchTerm%)")
-    List<Airline> findBySearchTermAndIsActiveTrue(@Param("searchTerm") String searchTerm);
+    @Query("SELECT a FROM Airline a WHERE a.code LIKE %:searchTerm% OR a.name LIKE %:searchTerm%")
+    List<Airline> findBySearchTerm(@Param("searchTerm") String searchTerm);
     
     boolean existsByCode(String code);
 }

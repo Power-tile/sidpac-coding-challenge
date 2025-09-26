@@ -17,19 +17,15 @@ public interface UserRepository extends JpaRepository<User, String> {
     
     Optional<User> findByEmail(String email);
     
-    Optional<User> findByUsernameAndIsActiveTrue(String username);
+    List<User> findByRole(UserRole role);
     
-    Optional<User> findByEmailAndIsActiveTrue(String email);
-    
-    List<User> findByRoleAndIsActiveTrue(UserRole role);
-    
-    @Query("SELECT u FROM User u WHERE u.isActive = true AND (u.username = :identifier OR u.email = :identifier)")
-    Optional<User> findByUsernameOrEmailAndIsActiveTrue(@Param("identifier") String identifier);
+    @Query("SELECT u FROM User u WHERE u.username = :identifier OR u.email = :identifier")
+    Optional<User> findByUsernameOrEmail(@Param("identifier") String identifier);
     
     boolean existsByUsername(String username);
     
     boolean existsByEmail(String email);
     
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.isActive = true")
-    long countByRoleAndIsActiveTrue(@Param("role") UserRole role);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role")
+    long countByRole(@Param("role") UserRole role);
 }

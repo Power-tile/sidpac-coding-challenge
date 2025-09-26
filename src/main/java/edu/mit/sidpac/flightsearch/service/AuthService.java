@@ -8,8 +8,11 @@ import edu.mit.sidpac.flightsearch.entity.UserRole;
 import edu.mit.sidpac.flightsearch.entity.UserSession;
 import edu.mit.sidpac.flightsearch.repository.UserRepository;
 import edu.mit.sidpac.flightsearch.repository.UserSessionRepository;
-import edu.mit.sidpac.flightsearch.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,34 +34,39 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
     
     @Autowired
-    private JwtUtil jwtUtil;
+    private AuthenticationManager authenticationManager;
     
     public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByUsernameOrEmailAndIsActiveTrue(request.getUsernameOrEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        // Authenticate user using Spring Security
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getUsernameOrEmail(), 
+                request.getPassword()
+            )
+        );
         
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
-        }
+        // Set authentication in security context
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         
-        // Deactivate existing sessions
-        userSessionRepository.deactivateAllSessionsByUserId(user.getId());
+        // Get user from repository
+        User user = userRepository.findByUsernameOrEmail(request.getUsernameOrEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Generate tokens
-        String token = jwtUtil.generateToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
+        // Delete existing sessions
+        userSessionRepository.deleteAllSessionsByUserId(user.getId());
         
-        // Create session
+        // Create session with session ID
+        String sessionId = UUID.randomUUID().toString();
         UserSession session = new UserSession(
                 user,
-                jwtUtil.hashToken(token),
-                jwtUtil.hashToken(refreshToken),
-                LocalDateTime.now().plusSeconds(jwtUtil.getExpirationTime() / 1000),
-                LocalDateTime.now().plusSeconds(jwtUtil.getRefreshExpirationTime() / 1000)
+                sessionId,
+                null, // No refresh token needed for session-based auth
+                LocalDateTime.now().plusHours(24), // 24 hour session
+                null // No refresh expiration
         );
         userSessionRepository.save(session);
         
-        return new AuthResponse(token, refreshToken, user.getRole().name());
+        return new AuthResponse(sessionId, null, user.getRole().name());
     }
     
     public AuthResponse register(RegisterRequest request) {
@@ -81,68 +89,48 @@ public class AuthService {
         
         userRepository.save(user);
         
-        // Generate tokens for new user
-        String token = jwtUtil.generateToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
-        
-        // Create session
+        // Create session for new user
+        String sessionId = UUID.randomUUID().toString();
         UserSession session = new UserSession(
                 user,
-                jwtUtil.hashToken(token),
-                jwtUtil.hashToken(refreshToken),
-                LocalDateTime.now().plusSeconds(jwtUtil.getExpirationTime() / 1000),
-                LocalDateTime.now().plusSeconds(jwtUtil.getRefreshExpirationTime() / 1000)
+                sessionId,
+                null, // No refresh token needed for session-based auth
+                LocalDateTime.now().plusHours(24), // 24 hour session
+                null // No refresh expiration
         );
         userSessionRepository.save(session);
         
-        return new AuthResponse(token, refreshToken, user.getRole().name());
+        return new AuthResponse(sessionId, null, user.getRole().name());
     }
     
-    public void logout(String token) {
-        String tokenHash = jwtUtil.hashToken(token);
-        userSessionRepository.findByTokenHashAndIsActiveTrue(tokenHash)
+    public void logout(String sessionId) {
+        userSessionRepository.findByTokenHash(sessionId)
                 .ifPresent(session -> {
-                    session.setIsActive(false);
-                    userSessionRepository.save(session);
+                    userSessionRepository.delete(session);
                 });
+        
+        // Clear security context
+        SecurityContextHolder.clearContext();
     }
     
-    public AuthResponse refreshToken(String refreshToken) {
-        String refreshTokenHash = jwtUtil.hashToken(refreshToken);
-        UserSession session = userSessionRepository.findByRefreshTokenHashAndIsActiveTrue(refreshTokenHash)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
-        
-        if (session.isRefreshExpired()) {
-            session.setIsActive(false);
-            userSessionRepository.save(session);
-            throw new RuntimeException("Refresh token expired");
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("User not authenticated");
         }
         
-        User user = session.getUser();
-        
-        // Generate new tokens
-        String newToken = jwtUtil.generateToken(user);
-        String newRefreshToken = jwtUtil.generateRefreshToken(user);
-        
-        // Update session
-        session.setTokenHash(jwtUtil.hashToken(newToken));
-        session.setRefreshTokenHash(jwtUtil.hashToken(newRefreshToken));
-        session.setExpiresAt(LocalDateTime.now().plusSeconds(jwtUtil.getExpirationTime() / 1000));
-        session.setRefreshExpiresAt(LocalDateTime.now().plusSeconds(jwtUtil.getRefreshExpirationTime() / 1000));
-        userSessionRepository.save(session);
-        
-        return new AuthResponse(newToken, newRefreshToken, user.getRole().name());
+        String username = authentication.getName();
+        return userRepository.findByUsernameOrEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
     
-    public User getCurrentUser(String token) {
-        String tokenHash = jwtUtil.hashToken(token);
-        UserSession session = userSessionRepository.findByTokenHashAndIsActiveTrue(tokenHash)
-                .orElseThrow(() -> new RuntimeException("Invalid token"));
+    public User getCurrentUser(String sessionId) {
+        UserSession session = userSessionRepository.findByTokenHash(sessionId)
+                .orElseThrow(() -> new RuntimeException("Invalid session"));
         
         if (session.isExpired()) {
-            session.setIsActive(false);
-            userSessionRepository.save(session);
-            throw new RuntimeException("Token expired");
+            userSessionRepository.delete(session);
+            throw new RuntimeException("Session expired");
         }
         
         return session.getUser();

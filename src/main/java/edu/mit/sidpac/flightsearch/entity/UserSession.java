@@ -18,16 +18,14 @@ public class UserSession extends BaseEntity {
     @Column(name = "token_hash", nullable = false)
     private String tokenHash;
     
-    @NotBlank
-    @Column(name = "refresh_token_hash", nullable = false)
+    @Column(name = "refresh_token_hash")
     private String refreshTokenHash;
     
     @NotNull
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
     
-    @NotNull
-    @Column(name = "refresh_expires_at", nullable = false)
+    @Column(name = "refresh_expires_at")
     private LocalDateTime refreshExpiresAt;
     
     // Constructors
@@ -89,6 +87,6 @@ public class UserSession extends BaseEntity {
     }
     
     public boolean isRefreshExpired() {
-        return LocalDateTime.now().isAfter(refreshExpiresAt);
+        return refreshExpiresAt != null && LocalDateTime.now().isAfter(refreshExpiresAt);
     }
 }

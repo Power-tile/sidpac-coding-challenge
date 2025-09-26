@@ -34,7 +34,7 @@ public class FlightSearchService {
         LocalDateTime departureTime = request.getDepartureTime();
         
         // Find all possible flights
-        List<Flight> allFlights = flightRepository.findByIsActiveTrue();
+        List<Flight> allFlights = flightRepository.findAll();
         
         // Find direct flights
         List<Trip> directTrips = findDirectTrips(allFlights, sourceCode, destinationCode, departureTime);
@@ -130,7 +130,7 @@ public class FlightSearchService {
     }
     
     private BigDecimal calculateFarePrice(Flight flight, Airline airline, int legCount) {
-        List<Fare> fares = fareRepository.findActiveFaresByAirlineCode(airline.getCode());
+        List<Fare> fares = fareRepository.findFaresByAirlineCode(airline.getCode());
         
         BigDecimal bestPrice = null;
         
