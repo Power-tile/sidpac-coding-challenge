@@ -26,10 +26,10 @@ public class Airline extends BaseEntity {
     @Column(length = 50)
     private String country;
     
-    @OneToMany(mappedBy = "airline", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "airline", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<FlightAirline> flightAirlines = new HashSet<>();
     
-    @OneToMany(mappedBy = "airline", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "airline", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<Fare> fares = new HashSet<>();
     
     // Constructors

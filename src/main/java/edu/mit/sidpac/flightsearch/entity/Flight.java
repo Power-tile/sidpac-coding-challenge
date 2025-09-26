@@ -18,11 +18,11 @@ public class Flight extends BaseEntity {
     @Column(name = "flight_number", nullable = false, length = 10)
     private String flightNumber;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "source_airport_id", nullable = false)
     private Airport sourceAirport;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "destination_airport_id", nullable = false)
     private Airport destinationAirport;
     
@@ -34,7 +34,7 @@ public class Flight extends BaseEntity {
     @Column(name = "arrival_time", nullable = false)
     private LocalDateTime arrivalTime;
     
-    @OneToMany(mappedBy = "flight", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "flight", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<FlightAirline> flightAirlines = new HashSet<>();
     
     // Constructors

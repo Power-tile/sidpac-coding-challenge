@@ -32,10 +32,10 @@ public class Airport extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String country;
     
-    @OneToMany(mappedBy = "sourceAirport", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "sourceAirport", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<Flight> departingFlights = new HashSet<>();
     
-    @OneToMany(mappedBy = "destinationAirport", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "destinationAirport", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<Flight> arrivingFlights = new HashSet<>();
     
     // Constructors

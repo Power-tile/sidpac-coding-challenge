@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 @Table(name = "fare_restrictions")
 public class FareRestriction extends BaseEntity {
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fare_id", nullable = false)
     private Fare fare;
     

@@ -28,9 +28,15 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                                   FilterChain filterChain) throws ServletException, IOException {
         
         String sessionId = request.getHeader("X-Session-ID");
+        String method = request.getMethod();
+        String path = request.getRequestURI();
+        
+        System.out.println("SessionAuthenticationFilter: " + method + " " + path + " - SessionID: " + sessionId);
         
         // Check if this is a protected endpoint that requires authentication
         boolean requiresAuth = isProtectedEndpoint(request);
+        
+        System.out.println("SessionAuthenticationFilter: requiresAuth = " + requiresAuth);
         
         if (requiresAuth) {
             if (sessionId == null || sessionId.trim().isEmpty()) {
@@ -103,6 +109,21 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     private boolean isProtectedEndpoint(HttpServletRequest request) {
         String method = request.getMethod();
         String path = request.getRequestURI();
+        
+        // Auth endpoints are always public
+        if (path.startsWith("/api/auth/")) {
+            return false;
+        }
+        
+        // Search endpoints are always public
+        if (path.startsWith("/api/search/")) {
+            return false;
+        }
+        
+        // GET operations on flights are public
+        if ("GET".equals(method) && path.startsWith("/api/flights")) {
+            return false;
+        }
         
         // POST, PUT, DELETE operations on flights require authentication
         if (("POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method)) 

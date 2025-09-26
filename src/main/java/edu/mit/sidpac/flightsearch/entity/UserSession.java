@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(name = "user_sessions")
 public class UserSession extends BaseEntity {
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     

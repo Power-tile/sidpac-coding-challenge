@@ -45,7 +45,7 @@ public class User extends BaseEntity {
     @Column(name = "assigned_airline_code", length = 3)
     private String assignedAirlineCode;
     
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<UserSession> sessions = new HashSet<>();
     
     // Constructors

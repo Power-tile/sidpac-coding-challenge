@@ -7,11 +7,11 @@ import jakarta.persistence.*;
 @Table(name = "flight_airlines")
 public class FlightAirline extends BaseEntity {
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "flight_id", nullable = false)
     private Flight flight;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "airline_id", nullable = false)
     private Airline airline;
     

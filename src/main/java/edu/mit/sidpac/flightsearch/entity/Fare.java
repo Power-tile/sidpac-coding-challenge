@@ -14,7 +14,7 @@ import java.util.Set;
 @Table(name = "fares")
 public class Fare extends BaseEntity {
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "airline_id", nullable = false)
     private Airline airline;
     
@@ -31,7 +31,7 @@ public class Fare extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
     
-    @OneToMany(mappedBy = "fare", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "fare", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<FareRestriction> restrictions = new HashSet<>();
     
     // Constructors
