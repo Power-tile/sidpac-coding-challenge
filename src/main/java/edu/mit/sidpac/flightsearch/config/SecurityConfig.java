@@ -54,8 +54,6 @@ public class SecurityConfig {
                 .requestMatchers("POST", "/api/flights").hasRole("ADMIN")
                 .requestMatchers("PUT", "/api/flights/*").hasRole("ADMIN")
                 .requestMatchers("DELETE", "/api/flights/*").hasRole("ADMIN")
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
             .userDetailsService(userDetailsService)

@@ -10,7 +10,6 @@ A comprehensive flight search engine built with Spring Boot and SQLite, featurin
 - **Authentication & Authorization**: JWT-based authentication with role-based access control
 - **Airline-Specific Permissions**: Admins can be assigned to specific airlines for management
 - **Zero-Configuration Database**: Uses SQLite - no database server setup required!
-- **API Documentation**: Swagger/OpenAPI documentation
 - **Comprehensive Testing**: Unit, integration, and end-to-end tests
 - **CI/CD Pipeline**: Automated testing and deployment
 
@@ -171,8 +170,6 @@ Expected results:
 
 Once the application is running, you can access:
 
-- **Swagger UI**: http://localhost:8080/api/swagger-ui.html
-- **API Docs**: http://localhost:8080/api/api-docs
 
 ### 6. Initial Data and Test Users
 
@@ -393,13 +390,7 @@ Error: Port 8080 was already in use
 ```
 **Solution**: Change port in `application.yml` or stop the process using port 8080
 
-#### 3. JWT Token Invalid
-```
-Error: JWT signature does not match locally computed signature
-```
-**Solution**: Ensure JWT secret is consistent across application restarts
-
-#### 4. Maven Build Fails
+#### 3. Maven Build Fails
 ```
 Error: Could not resolve dependencies
 ```
@@ -429,7 +420,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For questions or issues:
 1. Check the troubleshooting section above
-2. Review the API documentation at `/api/swagger-ui.html`
+2. Review the API endpoints in the README documentation
 3. Create an issue in the repository
 4. Contact the development team
 
@@ -440,5 +431,3 @@ See the "API Endpoints (with permissions)" section above for a compact summary. 
 - Flights: GET endpoints return either a list or a single flight entity; write endpoints return the created/updated entity or `400` on validation errors.
 - Search: POST `/api/search/flights` returns a `SearchResponse` containing per-airline priced trips and legs.
 
-### Health Check
-- `GET /api/actuator/health` - Application health status

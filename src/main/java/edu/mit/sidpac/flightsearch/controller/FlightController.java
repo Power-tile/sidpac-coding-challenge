@@ -5,8 +5,6 @@ import edu.mit.sidpac.flightsearch.entity.User;
 import edu.mit.sidpac.flightsearch.exception.InsufficientPermissionsException;
 import edu.mit.sidpac.flightsearch.service.AuthService;
 import edu.mit.sidpac.flightsearch.service.FlightService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +19,6 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/flights")
-@Tag(name = "Flights", description = "Flight management endpoints")
 public class FlightController {
     
     @Autowired
@@ -31,7 +28,6 @@ public class FlightController {
     private AuthService authService;
     
     @GetMapping
-    @Operation(summary = "Get all flights", description = "Retrieve all active flights with optional pagination")
     public ResponseEntity<?> getAllFlights(Pageable pageable) {
         // Always return a simple list, not a Page object
         List<Flight> flights = flightService.getAllFlights();
@@ -39,7 +35,6 @@ public class FlightController {
     }
     
     @GetMapping("/{id}")
-    @Operation(summary = "Get flight by ID", description = "Retrieve a specific flight by its ID")
     public ResponseEntity<Flight> getFlightById(@PathVariable String id) {
         Optional<Flight> flight = flightService.getFlightById(id);
         return flight.map(ResponseEntity::ok)
@@ -47,7 +42,6 @@ public class FlightController {
     }
     
     @PostMapping
-    @Operation(summary = "Create flight", description = "Create a new flight (Admin only)")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Flight> createFlight(@RequestBody CreateFlightRequest request) {
         try {
@@ -75,7 +69,6 @@ public class FlightController {
     }
     
     @PutMapping("/{id}")
-    @Operation(summary = "Update flight", description = "Update an existing flight (Admin only)")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Flight> updateFlight(@PathVariable String id, @RequestBody UpdateFlightRequest request) {
         try {
@@ -101,7 +94,6 @@ public class FlightController {
     }
     
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete flight", description = "Delete a flight (Admin only)")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteFlight(@PathVariable String id) {
         try {
@@ -118,7 +110,6 @@ public class FlightController {
     }
     
     @GetMapping("/search")
-    @Operation(summary = "Search flights", description = "Search for flights between airports")
     public ResponseEntity<List<Flight>> searchFlights(
             @RequestParam String source,
             @RequestParam String destination,
@@ -135,7 +126,6 @@ public class FlightController {
     }
     
     @GetMapping("/airline/{airlineCode}")
-    @Operation(summary = "Get flights by airline", description = "Get all flights for a specific airline")
     public ResponseEntity<List<Flight>> getFlightsByAirline(@PathVariable String airlineCode) {
         List<Flight> flights = flightService.getFlightsByAirline(airlineCode);
         return ResponseEntity.ok(flights);

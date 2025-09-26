@@ -31,8 +31,6 @@ public class TestSecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/search/**").permitAll()
                 .requestMatchers("/api/flights/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
             .userDetailsService(userDetailsService)
