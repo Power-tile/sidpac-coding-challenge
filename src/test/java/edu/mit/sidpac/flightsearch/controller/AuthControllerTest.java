@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import edu.mit.sidpac.flightsearch.config.TestSecurityConfig;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
         org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class
     })
+@Import(TestSecurityConfig.class)
 @ActiveProfiles("test")
 class AuthControllerTest {
 
@@ -56,7 +58,7 @@ class AuthControllerTest {
         when(authService.login(any(AuthRequest.class))).thenReturn(response);
 
         // When & Then
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -75,7 +77,7 @@ class AuthControllerTest {
         when(authService.register(any(RegisterRequest.class))).thenReturn(response);
 
         // When & Then
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -93,7 +95,7 @@ class AuthControllerTest {
                 .thenThrow(new RuntimeException("Invalid credentials"));
 
         // When & Then
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());

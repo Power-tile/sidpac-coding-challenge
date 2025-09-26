@@ -97,13 +97,13 @@ class FlightServiceTest {
         // When & Then
         assertThrows(RuntimeException.class, () -> {
             flightService.createFlight(
-                    adminUser,
-                    "AA123",
-                    "BOS",
-                    "LAX",
-                    LocalDateTime.now().plusHours(1),
-                    LocalDateTime.now().plusHours(6),
-                    Set.of("AA")
+                adminUser,
+                "AA123",
+                "BOS",
+                "LAX",
+                LocalDateTime.now().plusHours(1),
+                LocalDateTime.now().plusHours(6),
+                Set.of("AA")
             );
         });
     }
@@ -116,13 +116,13 @@ class FlightServiceTest {
         // When & Then
         assertThrows(RuntimeException.class, () -> {
             flightService.createFlight(
-                    adminUser,
-                    "AA123",
-                    "BOS",
-                    "LAX",
-                    LocalDateTime.now().plusHours(1),
-                    LocalDateTime.now().plusHours(6),
-                    Set.of("AA")
+                adminUser,
+                "AA123",
+                "BOS",
+                "LAX",
+                LocalDateTime.now().plusHours(1),
+                LocalDateTime.now().plusHours(6),
+                Set.of("AA")
             );
         });
     }
