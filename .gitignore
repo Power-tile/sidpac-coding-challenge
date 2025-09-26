@@ -1,0 +1,21 @@
+# Build output
+/target/
+
+# SQLite runtime data
+/data/
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# OS/IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Maven wrapper cache
+.mvn/
