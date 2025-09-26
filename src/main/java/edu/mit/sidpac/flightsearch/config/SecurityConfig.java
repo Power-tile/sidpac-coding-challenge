@@ -50,7 +50,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/search/**").permitAll()
-                .requestMatchers("GET", "/api/flights", "/api/flights/*", "/api/flights/airline/**", "/api/flights/search").permitAll()
+                .requestMatchers("GET", "/api/flights", "/api/flights/*", "/api/flights/airline/**", "/api/flights/search", "/api/flights/planning").permitAll()
                 .requestMatchers("POST", "/api/flights").hasRole("ADMIN")
                 .requestMatchers("PUT", "/api/flights/*").hasRole("ADMIN")
                 .requestMatchers("DELETE", "/api/flights/*").hasRole("ADMIN")

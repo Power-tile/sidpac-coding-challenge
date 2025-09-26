@@ -2,7 +2,6 @@ package edu.mit.sidpac.flightsearch.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.mit.sidpac.flightsearch.dto.AuthRequest;
-import edu.mit.sidpac.flightsearch.dto.SearchRequest;
 import edu.mit.sidpac.flightsearch.entity.*;
 import edu.mit.sidpac.flightsearch.repository.*;
 import edu.mit.sidpac.flightsearch.service.AuthService;
@@ -101,11 +100,9 @@ class FlightSearchIntegrationTest {
     @Test
     void testPublicFlightSearch_WithoutAuthentication() throws Exception {
         // Test searching for a popular route (BOS to LAX) that should have multiple flights
-        SearchRequest request = new SearchRequest("BOS", "LAX", null);
-
-        mockMvc.perform(post("/api/search/flights")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(get("/api/flights/planning")
+                .param("sourceAirport", "BOS")
+                .param("destinationAirport", "LAX"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trips").isArray())
                 .andExpect(jsonPath("$.totalResults").isNumber())
@@ -124,11 +121,11 @@ class FlightSearchIntegrationTest {
     void testFlightSearch_WithDepartureTime() throws Exception {
         // Search for flights departing on March 20, 2024 at 09:30 (matches sample data)
         LocalDateTime departureTime = LocalDateTime.of(2024, 3, 20, 9, 30);
-        SearchRequest request = new SearchRequest("BOS", "LAX", departureTime);
 
-        mockMvc.perform(post("/api/search/flights")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(get("/api/flights/planning")
+                .param("sourceAirport", "BOS")
+                .param("destinationAirport", "LAX")
+                .param("departureTime", departureTime.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trips").isArray())
                 .andExpect(jsonPath("$.totalResults").isNumber());
@@ -142,11 +139,9 @@ class FlightSearchIntegrationTest {
     @Test
     void testInternationalFlightSearch() throws Exception {
         // Search for international route (JFK to LHR)
-        SearchRequest request = new SearchRequest("JFK", "LHR", null);
-
-        mockMvc.perform(post("/api/search/flights")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(get("/api/flights/planning")
+                .param("sourceAirport", "JFK")
+                .param("destinationAirport", "LHR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trips").isArray())
                 .andExpect(jsonPath("$.totalResults").isNumber());
@@ -325,11 +320,9 @@ class FlightSearchIntegrationTest {
     void testMultiLegFlightSearch() throws Exception {
         // Search for a route that might require connections (BOS to LAS)
         // This tests the multi-leg trip functionality and fare restrictions
-        SearchRequest request = new SearchRequest("BOS", "LAS", null);
-
-        mockMvc.perform(post("/api/search/flights")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(get("/api/flights/planning")
+                .param("sourceAirport", "BOS")
+                .param("destinationAirport", "LAS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trips").isArray())
                 .andExpect(jsonPath("$.totalResults").isNumber());

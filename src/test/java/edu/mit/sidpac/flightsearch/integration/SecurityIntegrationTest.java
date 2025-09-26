@@ -2,7 +2,6 @@ package edu.mit.sidpac.flightsearch.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.mit.sidpac.flightsearch.dto.AuthRequest;
-import edu.mit.sidpac.flightsearch.dto.SearchRequest;
 import edu.mit.sidpac.flightsearch.entity.*;
 import edu.mit.sidpac.flightsearch.repository.*;
 import edu.mit.sidpac.flightsearch.service.AuthService;
@@ -145,21 +144,20 @@ class SecurityIntegrationTest {
     @Test
     void testSearchEndpoints_ShouldBePublic() throws Exception {
         // Test basic flight search without authentication
-        SearchRequest searchRequest = new SearchRequest("BOS", "LAX", null);
-        
-        mockMvc.perform(post("/api/search/flights")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(searchRequest)))
+        mockMvc.perform(get("/api/flights/planning")
+                .param("sourceAirport", "BOS")
+                .param("destinationAirport", "LAX"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trips").isArray())
                 .andExpect(jsonPath("$.totalResults").isNumber());
 
         // Test flight search with specific departure time
-        SearchRequest timeSearchRequest = new SearchRequest("BOS", "LAX", LocalDateTime.of(2024, 3, 20, 9, 30));
+        LocalDateTime departureTime = LocalDateTime.of(2024, 3, 20, 9, 30);
         
-        mockMvc.perform(post("/api/search/flights")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(timeSearchRequest)))
+        mockMvc.perform(get("/api/flights/planning")
+                .param("sourceAirport", "BOS")
+                .param("destinationAirport", "LAX")
+                .param("departureTime", departureTime.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trips").isArray());
     }

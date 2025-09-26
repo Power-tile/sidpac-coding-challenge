@@ -58,11 +58,11 @@ This command will:
 # Build the project
 mvn clean compile
 
-# Run tests
-mvn test
-
 # Run the application
 mvn spring-boot:run
+
+# Or, to run tests
+mvn test
 ```
 
 The application will start on `http://localhost:8080/api`
@@ -86,7 +86,7 @@ Below is a high-signal summary of the available endpoints, their HTTP methods, a
   - DELETE `/api/flights/{id}` — Delete flight (ADMIN)
 
 - Flight Search (public)
-  - POST `/api/search/flights` — Search and return priced trips by airline (public)
+  - GET `/api/flights/planning` — Search and return priced trips by airline (public)
 
 ### Permissions model
 - Only one role exists: ADMIN.
@@ -94,58 +94,6 @@ Below is a high-signal summary of the available endpoints, their HTTP methods, a
   - Airline Admin: `assignedAirlineCode` is set; can only modify that airline's data.
 - All read/search endpoints listed above are public and do not require authentication.
 - Write endpoints (POST/PUT/DELETE on flights) require an ADMIN session ID (X-Session-ID header) and are enforced by airline scope.
-
-### Quick examples
-
-- Register (creates an ADMIN; set `assignedAirlineCode` later via admin tools if needed)
-```bash
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "john_doe",
-    "email": "john@example.com",
-    "password": "password123",
-    "firstName": "John",
-    "lastName": "Doe"
-  }'
-```
-
-- Login
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "usernameOrEmail": "admin",
-    "password": "password123"
-  }'
-```
-
-- Public: list flights
-```bash
-curl -X GET "http://localhost:8080/api/flights"
-```
-
-- Public: search priced trips
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "BOS", "destinationAirport": "LAX"}'
-```
-
-- ADMIN: create flight (replace SESSION_ID)
-```bash
-curl -X POST http://localhost:8080/api/flights \
-  -H "X-Session-ID: SESSION_ID" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "flightNumber": "AA555",
-    "sourceAirportCode": "BOS",
-    "destinationAirportCode": "LAX",
-    "departureTime": "2024-03-20T09:30:00",
-    "arrivalTime": "2024-03-20T15:30:00",
-    "airlineCodes": ["AA"]
-  }'
-```
 
 ### 4. Verify Database Setup
 
@@ -187,36 +135,325 @@ The database comes pre-loaded with comprehensive test data:
 - **25+ Fares**: Complex pricing with restrictions (hub specials, early bird, multi-leg)
 - **Codeshare Relationships**: Flights operated by multiple airlines
 
-#### Test Flight Search Examples:
-```bash
-# Search BOS to LAX
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "BOS", "destinationAirport": "LAX"}'
-
-# Search JFK to LAX  
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "JFK", "destinationAirport": "LAX"}'
-```
-
-## Configuration
-
-### Environment Variables
-
-You can override default configuration using environment variables:
-
-```bash
-# JWT configuration
-export JWT_SECRET=your_secret_key_here
-
-# Server port
-export SERVER_PORT=8080
-```
-
 ## Comprehensive API Usage Examples
 
 This section provides working examples using the actual sample data loaded in the database. All examples are based on the flights, airlines, and fares created by the initialization script.
+
+### Flight Management (Public Endpoints)
+
+#### 1. List all flights
+```bash
+curl -X GET "http://localhost:8080/api/flights"
+```
+
+**Expected Response:** Array of 18 flights with details like:
+```json
+[
+  {
+    "id": "flight-aa123-001",
+    "flightNumber": "AA123",
+    "sourceAirport": {
+      "id": "airport-bos-001",
+      "code": "BOS",
+      "name": "Logan International Airport",
+      "city": "Boston",
+      "country": "USA"
+    },
+    "destinationAirport": {
+      "id": "airport-lax-001", 
+      "code": "LAX",
+      "name": "Los Angeles International Airport",
+      "city": "Los Angeles",
+      "country": "USA"
+    },
+    "departureTime": "2024-03-20T09:30:00",
+    "arrivalTime": "2024-03-20T15:30:00",
+    "airlines": [
+      {
+        "id": "airline-aa-001",
+        "code": "AA",
+        "name": "American Airlines",
+        "country": "USA"
+      },
+      {
+        "id": "airline-b6-001",
+        "code": "B6", 
+        "name": "JetBlue Airways",
+        "country": "USA"
+      }
+    ]
+  }
+]
+```
+
+#### 2. Get specific flight by ID
+```bash
+curl -X GET "http://localhost:8080/api/flights/flight-aa123-001"
+```
+
+#### 63 Search flights by route (BOS to LAX)
+```bash
+curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX"
+```
+
+**Expected Response:** Array of flights from BOS to LAX, including:
+- AA123 (American Airlines, 09:30-15:30)
+- DL789 (Delta, 10:00-16:30) 
+- B6-501 (JetBlue, 16:00-19:30)
+
+#### 4. Search flights by route and time
+```bash
+curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX&departureTime=2024-03-20T09:30:00"
+```
+
+#### 5. Get flights by airline
+```bash
+curl -X GET "http://localhost:8080/api/flights/airline/AA"
+```
+
+**Expected Response:** Array of American Airlines flights including:
+- AA123 (BOS→LAX)
+- AA456 (LAX→BOS)
+- AA789 (JFK→MIA)
+- AA101 (DFW→LAX)
+
+## Advanced Flight Search Guide
+
+The flight search engine provides comprehensive search capabilities with pricing, multi-leg routing, and time-based filtering. All search endpoints are public and do not require authentication.
+
+### Search Endpoints
+
+- **GET** `/api/flights/planning` - Advanced search with pricing and multi-leg support
+- **GET** `/api/flights/search?source=AAA&destination=BBB[&departureTime=ISO]` - Basic flight search
+
+### Search Request Format
+
+**Query Parameters:**
+- `sourceAirport` (required): 3-letter airport code (e.g., "BOS")
+- `destinationAirport` (required): 3-letter airport code (e.g., "LAX")  
+- `departureTime` (optional): ISO datetime format (e.g., "2024-03-20T09:30:00")
+
+**Example URL:**
+```
+GET /api/flights/planning?sourceAirport=BOS&destinationAirport=LAX&departureTime=2024-03-20T09:30:00
+```
+
+### Search Capabilities
+
+#### ✅ Multi-Leg Flights
+The system automatically finds both direct flights and connecting flights:
+- **Direct flights**: Single flight from source to destination
+- **Connecting flights**: 2+ leg trips with layovers at intermediate airports
+- **Common airline requirement**: Connecting flights must use the same airline for all legs
+
+#### ✅ Price Information
+Each trip includes calculated pricing based on fare rules:
+- **Hub specials**: Discounted pricing for airline hub airports
+- **Time-based discounts**: Early bird specials for morning departures
+- **Multi-leg discounts**: Special pricing for connecting flights
+- **Automatic fare selection**: System chooses the lowest applicable fare
+
+#### ✅ Departure Time Filtering
+- **Time-based filtering**: Shows only flights departing after specified time
+- **1-hour buffer**: Includes flights departing within 1 hour of specified time
+- **Optional parameter**: Can be omitted for all available flights
+
+### Search Examples
+
+#### Basic Search (BOS to LAX)
+```bash
+curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destinationAirport=LAX"
+```
+
+**Expected Response:**
+```json
+{
+  "trips": [
+    {
+      "airline": "B6",
+      "totalPrice": 130,
+      "totalDuration": 360,
+      "flights": [
+        {
+          "id": "flight-aa123-001",
+          "flightNumber": "AA123",
+          "sourceAirport": {
+            "code": "BOS",
+            "name": "Logan International Airport"
+          },
+          "destinationAirport": {
+            "code": "LAX", 
+            "name": "Los Angeles International Airport"
+          },
+          "departureTime": "2024-03-20T09:30:00",
+          "arrivalTime": "2024-03-20T15:30:00"
+        }
+      ],
+      "legCount": 1,
+      "direct": true
+    },
+    {
+      "airline": "UA",
+      "totalPrice": 140,
+      "totalDuration": 330,
+      "flights": [
+        {
+          "flightNumber": "UA101",
+          "sourceAirport": {"code": "BOS"},
+          "destinationAirport": {"code": "ORD"},
+          "departureTime": "2024-03-20T08:00:00",
+          "arrivalTime": "2024-03-20T10:30:00"
+        },
+        {
+          "flightNumber": "UA102", 
+          "sourceAirport": {"code": "ORD"},
+          "destinationAirport": {"code": "LAX"},
+          "departureTime": "2024-03-20T12:00:00",
+          "arrivalTime": "2024-03-20T15:00:00"
+        }
+      ],
+      "legCount": 2,
+      "direct": false
+    }
+  ],
+  "searchCriteria": {
+    "sourceAirport": "BOS",
+    "destinationAirport": "LAX",
+    "departureTime": null
+  },
+  "totalResults": 2
+}
+```
+
+#### Search with Time Filter
+```bash
+curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destinationAirport=LAX&departureTime=2024-03-20T07:00:00"
+```
+
+#### Popular Route Examples
+```bash
+# JFK to LAX
+curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=JFK&destinationAirport=LAX"
+
+# International routes
+curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=LHR&destinationAirport=JFK"
+
+# Hub-to-hub connections
+curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=ATL&destinationAirport=LAX"
+```
+
+### Understanding the Pricing System
+
+The flight search engine uses a sophisticated fare pricing system with multiple fare types and restrictions:
+
+#### Fare Types and Restrictions
+
+**1. Standard Fares** - Base pricing for any flight
+- American Airlines: $200
+- Delta: $220  
+- United: $190
+- JetBlue: $180
+- Southwest: $160
+
+**2. Hub Specials** - Discounted pricing for hub airports
+- **BOS Hub Special**: $150 (American Airlines), $130 (JetBlue)
+- **DFW Hub Special**: $130 (American Airlines)
+- **ATL Hub Special**: $140 (Delta)
+- **ORD Hub Special**: $140 (United)
+- **SFO Hub Special**: $150 (United)
+- **DEN Hub Special**: $160 (United)
+- **JFK Hub Special**: $120 (JetBlue), $180 (Delta)
+- **LAS Hub Special**: $100 (Southwest)
+- **DEN Hub Special**: $110 (Southwest)
+
+**3. Time-Based Restrictions**
+- **Early Bird Special**: $175 (American Airlines) for flights departing before 09:00
+
+**4. Multi-Leg Discounts**
+- **Multi-Leg Discount**: $160 (American Airlines) for flights that are part of 2+ leg trips
+
+#### How Pricing is Calculated
+
+1. **Direct Flights**: Uses the best applicable fare for the route
+2. **Multi-Leg Trips**: Each leg is priced separately, then combined
+3. **Fare Selection**: The system automatically selects the lowest applicable fare based on:
+   - Airport endpoints (hub specials)
+   - Departure time (early bird discounts)
+   - Trip complexity (multi-leg discounts)
+
+#### Example Pricing Scenarios
+
+**BOS → LAX (American Airlines AA123)**
+- Standard fare: $200
+- BOS Hub Special: $150 ✅ (applies because departing from BOS)
+- **Final Price: $150**
+
+**JFK → LAX (Delta DL789)**  
+- Standard fare: $220
+- JFK Special: $180 ✅ (applies because departing from JFK)
+- **Final Price: $180**
+
+**BOS → ORD → LAX (United multi-leg)**
+- BOS → ORD: ORD Hub Special = $140
+- ORD → LAX: ORD Hub Special = $140  
+- Multi-leg discount: $160 per leg
+- **Final Price: $280** (140 + 140)
+
+**Early morning BOS → LAX (American Airlines)**
+- Standard fare: $200
+- BOS Hub Special: $150
+- Early Bird Special: $175 (departure before 09:00)
+- **Final Price: $150** (lowest applicable fare)
+
+### Response Format
+
+Each search returns a `SearchResponse` with:
+
+- **trips**: Array of available trip options, sorted by price (cheapest first)
+- **searchCriteria**: The search parameters used
+- **totalResults**: Number of trips found
+
+Each trip includes:
+- **airline**: Operating airline code
+- **totalPrice**: Calculated total price for the trip
+- **totalDuration**: Total travel time in minutes
+- **flights**: Array of flight legs (1 for direct, 2+ for connecting)
+- **legCount**: Number of flight legs
+- **direct**: Boolean indicating if it's a direct flight
+
+### Error Handling
+
+- **400 Bad Request**: Invalid airport codes or malformed request
+- **404 Not Found**: No flights found for the specified route
+- **500 Internal Server Error**: System error during search
+
+### Testing the Search API
+
+1. **Start the application:**
+   ```bash
+   mvn spring-boot:run
+   ```
+
+2. **Verify the database is initialized:**
+   ```bash
+   sqlite3 data/flight_search.db "SELECT COUNT(*) as flights FROM flights;"
+   # Should return: 18
+   ```
+
+3. **Test a simple search:**
+   ```bash
+   curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destinationAirport=LAX" | jq
+   ```
+
+#### Expected Results Summary
+
+Based on the sample data, you should see:
+- **18 total flights** across 16 airlines
+- **20 airports** (US and international)
+- **Multiple fare options** with hub specials and discounts
+- **Codeshare flights** (e.g., AA123 is also operated by JetBlue)
+- **Multi-leg trip options** for complex routes
+- **International flights** (LHR→JFK, CDG→JFK, NRT→LAX)
 
 ### Authentication
 
@@ -268,192 +505,6 @@ curl -X POST http://localhost:8080/api/auth/logout \
 ```
 
 **Expected Response:** `200 OK` (empty body)
-
-### Flight Management (Public Endpoints)
-
-#### 4. List all flights
-```bash
-curl -X GET "http://localhost:8080/api/flights"
-```
-
-**Expected Response:** Array of 18 flights with details like:
-```json
-[
-  {
-    "id": "flight-aa123-001",
-    "flightNumber": "AA123",
-    "sourceAirport": {
-      "id": "airport-bos-001",
-      "code": "BOS",
-      "name": "Logan International Airport",
-      "city": "Boston",
-      "country": "USA"
-    },
-    "destinationAirport": {
-      "id": "airport-lax-001", 
-      "code": "LAX",
-      "name": "Los Angeles International Airport",
-      "city": "Los Angeles",
-      "country": "USA"
-    },
-    "departureTime": "2024-03-20T09:30:00",
-    "arrivalTime": "2024-03-20T15:30:00",
-    "airlines": [
-      {
-        "id": "airline-aa-001",
-        "code": "AA",
-        "name": "American Airlines",
-        "country": "USA"
-      },
-      {
-        "id": "airline-b6-001",
-        "code": "B6", 
-        "name": "JetBlue Airways",
-        "country": "USA"
-      }
-    ]
-  }
-]
-```
-
-#### 5. Get specific flight by ID
-```bash
-curl -X GET "http://localhost:8080/api/flights/flight-aa123-001"
-```
-
-#### 6. Search flights by route (BOS to LAX)
-```bash
-curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX"
-```
-
-**Expected Response:** Array of flights from BOS to LAX, including:
-- AA123 (American Airlines, 09:30-15:30)
-- DL789 (Delta, 10:00-16:30) 
-- B6-501 (JetBlue, 16:00-19:30)
-
-#### 7. Search flights by route and time
-```bash
-curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX&departureTime=2024-03-20T09:30:00"
-```
-
-#### 8. Get flights by airline
-```bash
-curl -X GET "http://localhost:8080/api/flights/airline/AA"
-```
-
-**Expected Response:** Array of American Airlines flights including:
-- AA123 (BOS→LAX)
-- AA456 (LAX→BOS)
-- AA789 (JFK→MIA)
-- AA101 (DFW→LAX)
-
-### Advanced Flight Search with Pricing
-
-#### 9. Search for priced trips (BOS to LAX)
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceAirport": "BOS",
-    "destinationAirport": "LAX"
-  }'
-```
-
-**Expected Response:**
-```json
-{
-  "trips": [
-    {
-      "airline": "AA",
-      "totalPrice": 150.00,
-      "totalDuration": 360,
-      "flights": [
-        {
-          "id": "flight-aa123-001",
-          "flightNumber": "AA123",
-          "sourceAirport": {
-            "code": "BOS",
-            "name": "Logan International Airport"
-          },
-          "destinationAirport": {
-            "code": "LAX", 
-            "name": "Los Angeles International Airport"
-          },
-          "departureTime": "2024-03-20T09:30:00",
-          "arrivalTime": "2024-03-20T15:30:00"
-        }
-      ]
-    },
-    {
-      "airline": "DL",
-      "totalPrice": 200.00,
-      "totalDuration": 390,
-      "flights": [
-        {
-          "id": "flight-dl789-001",
-          "flightNumber": "DL789",
-          "sourceAirport": {"code": "JFK"},
-          "destinationAirport": {"code": "LAX"},
-          "departureTime": "2024-03-20T10:00:00",
-          "arrivalTime": "2024-03-20T16:30:00"
-        }
-      ]
-    }
-  ],
-  "searchCriteria": {
-    "sourceAirport": "BOS",
-    "destinationAirport": "LAX",
-    "departureTime": null
-  },
-  "totalResults": 2
-}
-```
-
-#### 10. Search with specific departure time
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceAirport": "BOS",
-    "destinationAirport": "LAX",
-    "departureTime": "2024-03-20T09:30:00"
-  }'
-```
-
-#### 11. Search for multi-leg trips (BOS to LAX via ORD)
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceAirport": "BOS",
-    "destinationAirport": "LAX"
-  }'
-```
-
-**Expected Response:** May include multi-leg trips like:
-```json
-{
-  "airline": "UA",
-  "totalPrice": 280.00,
-  "totalDuration": 450,
-  "flights": [
-    {
-      "flightNumber": "UA101",
-      "sourceAirport": {"code": "BOS"},
-      "destinationAirport": {"code": "ORD"},
-      "departureTime": "2024-03-20T08:00:00",
-      "arrivalTime": "2024-03-20T10:30:00"
-    },
-    {
-      "flightNumber": "UA102", 
-      "sourceAirport": {"code": "ORD"},
-      "destinationAirport": {"code": "LAX"},
-      "departureTime": "2024-03-20T12:00:00",
-      "arrivalTime": "2024-03-20T15:00:00"
-    }
-  ]
-}
-```
 
 ### Flight Management (Admin Endpoints)
 
@@ -542,170 +593,12 @@ curl -X POST http://localhost:8080/api/flights \
 
 #### 17. Invalid airport codes
 ```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceAirport": "INVALID",
-    "destinationAirport": "LAX"
-  }'
+curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=INVALID&destinationAirport=LAX"
 ```
 
 **Expected Response:** `400 Bad Request`
 
-### Sample Data Search Examples
 
-#### 18. Search popular routes with expected results
-
-**BOS to LAX (3 direct flights):**
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "BOS", "destinationAirport": "LAX"}'
-```
-
-**JFK to LAX (2 direct flights):**
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "JFK", "destinationAirport": "LAX"}'
-```
-
-**International routes:**
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "LHR", "destinationAirport": "JFK"}'
-```
-
-**Hub-to-hub connections:**
-```bash
-curl -X POST http://localhost:8080/api/search/flights \
-  -H "Content-Type: application/json" \
-  -d '{"sourceAirport": "ATL", "destinationAirport": "LAX"}'
-```
-
-### Understanding the Pricing System
-
-The flight search engine uses a sophisticated fare pricing system with multiple fare types and restrictions. Here's how pricing works:
-
-#### Fare Types and Restrictions
-
-**1. Standard Fares** - Base pricing for any flight
-- American Airlines: $200
-- Delta: $220  
-- United: $190
-- JetBlue: $180
-- Southwest: $160
-
-**2. Hub Specials** - Discounted pricing for hub airports
-- **BOS Hub Special**: $150 (American Airlines), $130 (JetBlue)
-- **DFW Hub Special**: $130 (American Airlines)
-- **ATL Hub Special**: $140 (Delta)
-- **ORD Hub Special**: $140 (United)
-- **SFO Hub Special**: $150 (United)
-- **DEN Hub Special**: $160 (United)
-- **JFK Hub Special**: $120 (JetBlue), $180 (Delta)
-- **LAS Hub Special**: $100 (Southwest)
-- **DEN Hub Special**: $110 (Southwest)
-
-**3. Time-Based Restrictions**
-- **Early Bird Special**: $175 (American Airlines) for flights departing before 09:00
-
-**4. Multi-Leg Discounts**
-- **Multi-Leg Discount**: $160 (American Airlines) for flights that are part of 2+ leg trips
-
-#### How Pricing is Calculated
-
-1. **Direct Flights**: Uses the best applicable fare for the route
-2. **Multi-Leg Trips**: Each leg is priced separately, then combined
-3. **Fare Selection**: The system automatically selects the lowest applicable fare based on:
-   - Airport endpoints (hub specials)
-   - Departure time (early bird discounts)
-   - Trip complexity (multi-leg discounts)
-
-#### Example Pricing Scenarios
-
-**BOS → LAX (American Airlines AA123)**
-- Standard fare: $200
-- BOS Hub Special: $150 ✅ (applies because departing from BOS)
-- **Final Price: $150**
-
-**JFK → LAX (Delta DL789)**  
-- Standard fare: $220
-- JFK Special: $180 ✅ (applies because departing from JFK)
-- **Final Price: $180**
-
-**BOS → ORD → LAX (United multi-leg)**
-- BOS → ORD: ORD Hub Special = $140
-- ORD → LAX: ORD Hub Special = $140  
-- Multi-leg discount: $160 per leg
-- **Final Price: $280** (140 + 140)
-
-**Early morning BOS → LAX (American Airlines)**
-- Standard fare: $200
-- BOS Hub Special: $150
-- Early Bird Special: $175 (departure before 09:00)
-- **Final Price: $150** (lowest applicable fare)
-
-### Testing the API Examples
-
-To test these examples, follow these steps:
-
-1. **Start the application:**
-   ```bash
-   mvn spring-boot:run
-   ```
-
-2. **Verify the database is initialized:**
-   ```bash
-   sqlite3 data/flight_search.db "SELECT COUNT(*) as flights FROM flights;"
-   # Should return: 18
-   ```
-
-3. **Test a simple search:**
-   ```bash
-   curl -X POST http://localhost:8080/api/search/flights \
-     -H "Content-Type: application/json" \
-     -d '{"sourceAirport": "BOS", "destinationAirport": "LAX"}' | jq
-   ```
-
-4. **Test authentication:**
-   ```bash
-   # Login
-   SESSION_ID=$(curl -s -X POST http://localhost:8080/api/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"usernameOrEmail": "admin", "password": "password123"}' | \
-     jq -r '.token')
-   
-   # Use session for admin operations
-   curl -X GET "http://localhost:8080/api/flights" \
-     -H "X-Session-ID: $SESSION_ID" | jq
-   ```
-
-#### Expected Results Summary
-
-Based on the sample data, you should see:
-
-- **18 total flights** across 16 airlines
-- **20 airports** (US and international)
-- **Multiple fare options** with hub specials and discounts
-- **Codeshare flights** (e.g., AA123 is also operated by JetBlue)
-- **Multi-leg trip options** for complex routes
-- **International flights** (LHR→JFK, CDG→JFK, NRT→LAX)
-
-#### Troubleshooting API Examples
-
-**If you get 404 errors:**
-- Ensure the application is running on port 8080
-- Check that the database was initialized properly
-
-**If you get 401/403 errors:**
-- Verify you're using the correct session ID format
-- Check that the user has the required permissions
-
-**If search returns no results:**
-- Verify airport codes are 3-letter uppercase (BOS, LAX, etc.)
-- Check that the departure date matches the sample data (2024-03-20)
 
 ### User Roles and Permissions
 
@@ -772,35 +665,4 @@ src/
 │       └── db/migration/   # Database migrations
 └── test/                   # Test classes
 ```
-
-### Adding New Features
-
-1. **Create Entity**: Add JPA entity in `entity/` package
-2. **Create Repository**: Add repository interface in `repository/` package
-3. **Create Service**: Add business logic in `service/` package
-4. **Create Controller**: Add REST endpoints in `controller/` package
-5. **Add Tests**: Create corresponding test classes
-6. **Update Documentation**: Update README and API docs
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Database Connection Error
-```
-Error: Could not create connection to database server
-```
-**Solution**: Ensure the `data/` directory exists and is writable. The SQLite database will be created automatically.
-
-#### 2. Port Already in Use
-```
-Error: Port 8080 was already in use
-```
-**Solution**: Change port in `application.yml` or stop the process using port 8080
-
-#### 3. Maven Build Fails
-```
-Error: Could not resolve dependencies
-```
-**Solution**: Check internet connection and Maven settings, try `mvn clean install -U`
 
