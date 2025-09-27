@@ -7,11 +7,10 @@ A comprehensive flight search engine built with Spring Boot and SQLite, featurin
 - **Flight Management**: Create, read, update, and delete flights with codeshare airline support
 - **Fare Management**: Complex fare pricing with restrictions (endpoint, time-based, multi-leg)
 - **Flight Search**: Advanced search with pricing calculations and multi-leg trip support
-- **Authentication & Authorization**: JWT-based authentication with role-based access control
+- **Authentication & Authorization**: session-based authentication with role-based access control
 - **Airline-Specific Permissions**: Admins can be assigned to specific airlines for management
 - **Zero-Configuration Database**: Uses SQLite - no database server setup required!
 - **Comprehensive Testing**: Unit, integration, and end-to-end tests
-- **CI/CD Pipeline**: Automated testing and deployment
 
 ## Prerequisites
 
@@ -25,7 +24,7 @@ A comprehensive flight search engine built with Spring Boot and SQLite, featurin
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Power-tile/sidpac-coding-challenge.git
 cd sidpac-coding-challenge
 ```
 
@@ -87,6 +86,17 @@ Below is a high-signal summary of the available endpoints, their HTTP methods, a
 
 - Flight Search (public)
   - GET `/api/flights/planning` — Search and return priced trips by airline (public)
+
+### Error Responses
+
+The API returns appropriate HTTP status codes for different scenarios:
+
+- **404 Not Found**: Returned when requesting a resource that doesn't exist
+  - `GET /api/flights/{id}` — When flight ID doesn't exist
+  - `GET /api/flights/airline/{code}` — When airline code doesn't exist
+- **401 Unauthorized**: Returned when authentication is required but not provided
+- **403 Forbidden**: Returned when user lacks permissions for the requested operation
+- **400 Bad Request**: Returned for invalid request data or parameters
 
 ### Permissions model
 - Only one role exists: ADMIN.
@@ -733,6 +743,10 @@ The Flight Search Engine includes comprehensive test coverage across multiple la
   - ✅ Flight search with specific departure time filtering
   - ✅ International flight search (JFK to LHR)
   - ✅ Public access to flight listings and airline-specific flights
+  - ✅ Get flights by airline code (valid airline)
+  - ✅ Get flights by non-existent airline code returns 404
+  - ✅ Get specific flight by ID (valid flight)
+  - ✅ Get non-existent flight by ID returns 404
   - ✅ Super admin flight creation permissions
   - ✅ Airline admin permissions and restrictions
   - ✅ Unauthenticated access prevention for write operations
@@ -806,14 +820,15 @@ The Flight Search Engine includes comprehensive test coverage across multiple la
 #### Test Statistics
 
 - **Total Test Files**: 6
-- **Total Test Methods**: 98 individual test scenarios
+- **Total Test Methods**: 100+ individual test scenarios
 - **Coverage Areas**:
   - Authentication & Authorization: 20+ tests
-  - Flight Management: 20+ tests
+  - Flight Management: 22+ tests (including error handling)
   - Fare Calculation & Pricing: 15+ tests
   - Security & Permissions: 20+ tests
   - Data Integrity: 10+ tests
   - End-to-End Workflows: 5+ tests
+  - Error Handling & HTTP Status Codes: 8+ tests
 
 #### Running Specific Test Categories
 

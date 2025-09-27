@@ -181,4 +181,8 @@ public class FlightService {
     public List<Flight> getFlightsByAirline(String airlineCode) {
         return flightRepository.findFlightsByAirline(airlineCode);
     }
+    
+    public boolean airlineExists(String airlineCode) {
+        return airlineRepository.existsByCode(airlineCode);
+    }
 }

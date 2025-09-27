@@ -179,6 +179,18 @@ class FlightSearchIntegrationTest {
     }
 
     /**
+     * Test: Get flights by non-existent airline code returns 404
+     * Verifies that invalid airline codes return proper error response
+     * Tests the error handling for non-existent airline codes
+     */
+    @Test
+    void testGetFlightsByNonExistentAirline() throws Exception {
+        // Try to get flights for a non-existent airline code
+        mockMvc.perform(get("/api/flights/airline/XYZ"))
+                .andExpect(status().isNotFound());
+    }
+
+    /**
      * Test: Get specific flight by ID
      * Verifies that individual flight retrieval works
      * Tests the single entity retrieval functionality
@@ -197,6 +209,18 @@ class FlightSearchIntegrationTest {
                 .andExpect(jsonPath("$.flightNumber").exists())
                 .andExpect(jsonPath("$.sourceAirportCode").exists())
                 .andExpect(jsonPath("$.destinationAirportCode").exists());
+    }
+
+    /**
+     * Test: Get non-existent flight by ID returns 404
+     * Verifies that invalid flight IDs return proper error response
+     * Tests the error handling for non-existent flight IDs
+     */
+    @Test
+    void testGetNonExistentFlightById() throws Exception {
+        // Try to get a flight with a non-existent ID
+        mockMvc.perform(get("/api/flights/non-existent-flight-id"))
+                .andExpect(status().isNotFound());
     }
 
     /**

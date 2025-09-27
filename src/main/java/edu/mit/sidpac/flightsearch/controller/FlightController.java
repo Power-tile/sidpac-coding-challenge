@@ -127,6 +127,11 @@ public class FlightController {
     
     @GetMapping("/airline/{airlineCode}")
     public ResponseEntity<List<Flight>> getFlightsByAirline(@PathVariable String airlineCode) {
+        // First check if the airline exists
+        if (!flightService.airlineExists(airlineCode)) {
+            return ResponseEntity.notFound().build();
+        }
+        
         List<Flight> flights = flightService.getFlightsByAirline(airlineCode);
         return ResponseEntity.ok(flights);
     }
