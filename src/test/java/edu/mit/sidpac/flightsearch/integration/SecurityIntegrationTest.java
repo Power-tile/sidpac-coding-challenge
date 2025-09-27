@@ -105,12 +105,12 @@ class SecurityIntegrationTest {
     }
 
     /**
-     * Test: Authentication endpoints are publicly accessible
-     * Verifies that login and registration endpoints don't require authentication
-     * Tests the security configuration for public authentication endpoints
+     * Test: Authentication endpoints access control
+     * Verifies that login is public but registration requires super admin authentication
+     * Tests the security configuration for authentication endpoints
      */
     @Test
-    void testAuthEndpoints_ShouldBePublic() throws Exception {
+    void testAuthEndpoints_AccessControl() throws Exception {
         // Test login endpoint accessibility (should be accessible but login will fail with invalid credentials)
         AuthRequest loginRequest = new AuthRequest("nonexistent", "wrongpassword");
         
@@ -119,7 +119,7 @@ class SecurityIntegrationTest {
                 .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isBadRequest()); // Accessible but invalid credentials
 
-        // Test registration endpoint accessibility
+        // Test registration endpoint requires authentication
         String registerJson = """
             {
                 "username": "testuser",
@@ -133,7 +133,7 @@ class SecurityIntegrationTest {
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(registerJson))
-                .andExpect(status().isOk()); // Should be accessible and process the request
+                .andExpect(status().isUnauthorized()); // Should require authentication
     }
 
     /**
@@ -563,5 +563,118 @@ class SecurityIntegrationTest {
         // Verify specific airlines exist for permission testing
         assertTrue(airlineRepository.findByCode("AA").isPresent(), "AA airline should exist for security testing");
         assertTrue(airlineRepository.findByCode("DL").isPresent(), "DL airline should exist for security testing");
+    }
+
+    /**
+     * Test: Super admin can register new users
+     * Verifies that super admin (no assigned airline code) can register new users
+     * Tests the registration permission system for super admins
+     */
+    @Test
+    void testSuperAdmin_CanRegisterUsers() throws Exception {
+        if (superAdminSessionId == null) return;
+
+        String registerJson = """
+            {
+                "username": "newadmin",
+                "email": "newadmin@flightsearch.com",
+                "password": "password123",
+                "firstName": "New",
+                "lastName": "Admin"
+            }
+            """;
+
+        mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", superAdminSessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(registerJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+
+        // Verify the user was created in the database
+        assertTrue(userRepository.findByUsername("newadmin").isPresent(), "New admin user should be created");
+    }
+
+    /**
+     * Test: Airline admin cannot register new users
+     * Verifies that airline admins (with assigned airline code) cannot register new users
+     * Tests the registration permission system for airline admins
+     */
+    @Test
+    void testAirlineAdmin_CannotRegisterUsers() throws Exception {
+        if (aaAdminSessionId == null) return;
+
+        String registerJson = """
+            {
+                "username": "blockedadmin",
+                "email": "blockedadmin@flightsearch.com",
+                "password": "password123",
+                "firstName": "Blocked",
+                "lastName": "Admin"
+            }
+            """;
+
+        mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", aaAdminSessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(registerJson))
+                .andExpect(status().isBadRequest()); // Should be rejected
+
+        // Verify the user was NOT created in the database
+        assertFalse(userRepository.findByUsername("blockedadmin").isPresent(), "Blocked admin user should not be created");
+    }
+
+    /**
+     * Test: Registration with invalid session ID is rejected
+     * Verifies that registration with invalid session ID is properly rejected
+     * Tests the session validation for registration endpoint
+     */
+    @Test
+    void testRegistration_WithInvalidSessionId() throws Exception {
+        String registerJson = """
+            {
+                "username": "invalidsession",
+                "email": "invalidsession@flightsearch.com",
+                "password": "password123",
+                "firstName": "Invalid",
+                "lastName": "Session"
+            }
+            """;
+
+        mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "invalid-session-id")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(registerJson))
+                .andExpect(status().isUnauthorized());
+
+        // Verify the user was NOT created in the database
+        assertFalse(userRepository.findByUsername("invalidsession").isPresent(), "User with invalid session should not be created");
+    }
+
+    /**
+     * Test: Registration without session header is rejected
+     * Verifies that registration without session header is properly rejected
+     * Tests the session header requirement for registration endpoint
+     */
+    @Test
+    void testRegistration_WithoutSessionHeader() throws Exception {
+        String registerJson = """
+            {
+                "username": "nosession",
+                "email": "nosession@flightsearch.com",
+                "password": "password123",
+                "firstName": "No",
+                "lastName": "Session"
+            }
+            """;
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(registerJson))
+                .andExpect(status().isUnauthorized());
+
+        // Verify the user was NOT created in the database
+        assertFalse(userRepository.findByUsername("nosession").isPresent(), "User without session header should not be created");
     }
 }

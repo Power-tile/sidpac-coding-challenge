@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -167,9 +168,9 @@ class AuthControllerTest {
     }
 
     /**
-     * Test: Successful user registration
-     * Verifies that new admin users can be registered successfully
-     * Tests the user registration workflow
+     * Test: Successful user registration by super admin
+     * Verifies that super admin can register new admin users successfully
+     * Tests the user registration workflow with proper authorization
      */
     @Test
     void testRegister_Success() throws Exception {
@@ -178,10 +179,11 @@ class AuthControllerTest {
                                                     "password123", "New", "Admin");
         AuthResponse response = new AuthResponse("session-id-new", null, "ADMIN");
         
-        when(authService.register(any(RegisterRequest.class))).thenReturn(response);
+        when(authService.register(any(RegisterRequest.class), any(String.class))).thenReturn(response);
 
         // When & Then: Registration should succeed and return authentication tokens
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -201,11 +203,12 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("admin", "newemail@flightsearch.com", 
                                                     "password123", "New", "Admin");
         
-        when(authService.register(any(RegisterRequest.class)))
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
                 .thenThrow(new RuntimeException("Username already exists"));
 
         // When & Then: Registration should fail with proper error response
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -222,11 +225,12 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("newuser", "admin@flightsearch.com", 
                                                     "password123", "New", "User");
         
-        when(authService.register(any(RegisterRequest.class)))
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
                 .thenThrow(new RuntimeException("Email already exists"));
 
         // When & Then: Registration should fail with proper error response
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -243,11 +247,12 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("newuser", "invalid-email", 
                                                     "password123", "New", "User");
         
-        when(authService.register(any(RegisterRequest.class)))
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
                 .thenThrow(new RuntimeException("Invalid email format"));
 
         // When & Then: Registration should fail with validation error
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -264,11 +269,12 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("newuser", "newuser@flightsearch.com", 
                                                     "123", "New", "User");
         
-        when(authService.register(any(RegisterRequest.class)))
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
                 .thenThrow(new RuntimeException("Password too weak"));
 
         // When & Then: Registration should fail with password validation error
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -285,11 +291,12 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("", "newuser@flightsearch.com", 
                                                     "password123", "New", "User");
         
-        when(authService.register(any(RegisterRequest.class)))
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
                 .thenThrow(new RuntimeException("Username is required"));
 
         // When & Then: Registration should fail with validation error
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -324,6 +331,7 @@ class AuthControllerTest {
 
         // When & Then: Request should fail with proper error response
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(malformedJson))
                 .andExpect(status().isBadRequest());
@@ -358,8 +366,75 @@ class AuthControllerTest {
 
         // When & Then: Request should fail with validation error
         mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "valid-super-admin-session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(emptyJson))
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Test: Registration without session header is rejected
+     * Verifies that registration requires authentication
+     * Tests the security requirement for registration endpoint
+     */
+    @Test
+    void testRegister_WithoutSessionHeader() throws Exception {
+        // Given: Valid registration request without session header
+        RegisterRequest request = new RegisterRequest("newuser", "newuser@flightsearch.com", 
+                                                    "password123", "New", "User");
+        
+        // Mock the service to throw an exception when session ID is missing
+        when(authService.register(any(RegisterRequest.class), isNull()))
+                .thenThrow(new RuntimeException("Authentication required - session ID missing"));
+
+        // When & Then: Registration should fail with unauthorized error
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Test: Registration with invalid session ID is rejected
+     * Verifies that registration validates session ID
+     * Tests the session validation for registration endpoint
+     */
+    @Test
+    void testRegister_WithInvalidSessionId() throws Exception {
+        // Given: Valid registration request with invalid session ID
+        RegisterRequest request = new RegisterRequest("newuser", "newuser@flightsearch.com", 
+                                                    "password123", "New", "User");
+        
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
+                .thenThrow(new RuntimeException("Invalid session"));
+
+        // When & Then: Registration should fail with unauthorized error (session-related)
+        mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "invalid-session-id")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Test: Registration by airline admin is rejected
+     * Verifies that only super admins can register new users
+     * Tests the authorization check for registration endpoint
+     */
+    @Test
+    void testRegister_ByAirlineAdmin_IsRejected() throws Exception {
+        // Given: Valid registration request by airline admin
+        RegisterRequest request = new RegisterRequest("newuser", "newuser@flightsearch.com", 
+                                                    "password123", "New", "User");
+        
+        when(authService.register(any(RegisterRequest.class), any(String.class)))
+                .thenThrow(new RuntimeException("Only super admins can register new users"));
+
+        // When & Then: Registration should fail with bad request error
+        mockMvc.perform(post("/api/auth/register")
+                .header("X-Session-ID", "airline-admin-session")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 }

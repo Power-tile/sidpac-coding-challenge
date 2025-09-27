@@ -71,9 +71,9 @@ The application will start on `http://localhost:8080/api`
 
 Below is a high-signal summary of the available endpoints, their HTTP methods, authentication requirements, and typical usage.
 
-- Authentication (public)
-  - POST `/api/auth/register` — Register a new admin (super-admin or airline-admin)
-  - POST `/api/auth/login` — Obtain session ID for authentication
+- Authentication
+  - POST `/api/auth/register` — Register a new admin (SUPER ADMIN only; requires X-Session-ID header)
+  - POST `/api/auth/login` — Obtain session ID for authentication (public)
   - POST `/api/auth/logout` — Invalidate the current session (requires X-Session-ID header)
 
 - Flights (read: public; write: ADMIN only)
@@ -429,10 +429,13 @@ Each trip includes:
 
 ### Authentication
 
-#### 1. Register a new admin user
+#### 1. Register a new admin user (Super Admin only)
+**Note**: Only super admins (users with no assigned airline code) can register new users. You must be logged in as a super admin to use this endpoint.
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
+  -H "X-Session-ID: your-super-admin-session-id" \
   -d '{
     "username": "new_admin",
     "email": "new_admin@example.com",
@@ -600,10 +603,13 @@ The Flight Search Engine includes comprehensive test coverage across multiple la
   - ✅ Login with airline admin credentials
   - ✅ Login failure with invalid credentials
   - ✅ Login failure with non-existent user
-  - ✅ Successful user registration
+  - ✅ Successful user registration by super admin
   - ✅ Registration failure with duplicate username/email
   - ✅ Registration validation (invalid email format, weak password, missing fields)
   - ✅ Request validation (malformed JSON, empty request body)
+  - ✅ Registration without session header is rejected
+  - ✅ Registration with invalid session ID is rejected
+  - ✅ Registration by airline admin is rejected (only super admins can register)
 
 **2. FlightServiceTest** (`src/test/java/edu/mit/sidpac/flightsearch/service/FlightServiceTest.java`)
 - **Type**: Unit Tests (Mockito with mocked dependencies)
@@ -637,12 +643,17 @@ The Flight Search Engine includes comprehensive test coverage across multiple la
 - **Type**: Integration Tests (SpringBootTest with full security configuration)
 - **Coverage**: Security configuration and endpoint access control
 - **Test Scenarios**:
-  - ✅ Public endpoint accessibility (auth, search, read operations)
+  - ✅ Public endpoint accessibility (login, search, read operations)
+  - ✅ Registration endpoint requires super admin authentication
   - ✅ Protected endpoint security (write operations require authentication)
   - ✅ Session-based authentication validation
   - ✅ Invalid/malformed session ID rejection
   - ✅ Airline-specific admin permission enforcement
   - ✅ Super admin unrestricted permissions
+  - ✅ Super admin can register new users
+  - ✅ Airline admin cannot register new users
+  - ✅ Registration with invalid session ID is rejected
+  - ✅ Registration without session header is rejected
   - ✅ Logout functionality and session invalidation
   - ✅ Database data integrity for security testing
 
@@ -694,12 +705,12 @@ The Flight Search Engine includes comprehensive test coverage across multiple la
 #### Test Statistics
 
 - **Total Test Files**: 6
-- **Total Test Methods**: 60+ individual test scenarios
+- **Total Test Methods**: 98 individual test scenarios
 - **Coverage Areas**:
-  - Authentication & Authorization: 15+ tests
+  - Authentication & Authorization: 20+ tests
   - Flight Management: 20+ tests
   - Fare Calculation & Pricing: 15+ tests
-  - Security & Permissions: 15+ tests
+  - Security & Permissions: 20+ tests
   - Data Integrity: 10+ tests
   - End-to-End Workflows: 5+ tests
 

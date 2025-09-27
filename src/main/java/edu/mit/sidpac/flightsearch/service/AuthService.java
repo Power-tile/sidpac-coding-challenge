@@ -70,7 +70,18 @@ public class AuthService {
         return new AuthResponse(sessionId, null, user.getRole().name());
     }
     
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String sessionId) {
+        // Check if session ID is provided
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            throw new RuntimeException("Authentication required - session ID missing");
+        }
+        
+        // Check if the current user is a super admin (no assigned airline code)
+        User currentUser = getCurrentUser(sessionId);
+        if (currentUser.getAssignedAirlineCode() != null) {
+            throw new RuntimeException("Only super admins can register new users");
+        }
+        
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already exists");
         }
@@ -91,17 +102,17 @@ public class AuthService {
         userRepository.save(user);
         
         // Create session for new user
-        String sessionId = UUID.randomUUID().toString();
+        String newSessionId = UUID.randomUUID().toString();
         UserSession session = new UserSession(
                 user,
-                sessionId,
+                newSessionId,
                 "no-refresh-token", // Default value for session-based auth
                 LocalDateTime.now().plusHours(24), // 24 hour session
                 LocalDateTime.now().plusHours(24) // Same expiration as session
         );
         userSessionRepository.save(session);
         
-        return new AuthResponse(sessionId, null, user.getRole().name());
+        return new AuthResponse(newSessionId, null, user.getRole().name());
     }
     
     @Transactional

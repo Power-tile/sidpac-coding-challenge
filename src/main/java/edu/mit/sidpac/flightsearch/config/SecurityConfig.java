@@ -48,7 +48,8 @@ public class SecurityConfig {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/logout").permitAll()
+                .requestMatchers("/api/auth/register").hasRole("ADMIN")
                 .requestMatchers("/api/search/**").permitAll()
                 .requestMatchers("GET", "/api/flights", "/api/flights/*", "/api/flights/airline/**", "/api/flights/search", "/api/flights/planning").permitAll()
                 .requestMatchers("POST", "/api/flights").hasRole("ADMIN")

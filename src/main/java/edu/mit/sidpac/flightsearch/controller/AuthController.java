@@ -27,11 +27,15 @@ public class AuthController {
     }
     
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request, 
+                                                @RequestHeader(value = "X-Session-ID", required = false) String sessionId) {
         try {
-            AuthResponse response = authService.register(request);
+            AuthResponse response = authService.register(request, sessionId);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            if (e.getMessage().contains("session") || e.getMessage().contains("authentication")) {
+                return ResponseEntity.status(401).build();
+            }
             return ResponseEntity.badRequest().build();
         }
     }
