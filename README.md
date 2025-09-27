@@ -1,6 +1,8 @@
 # Flight Search Engine
 
-A comprehensive flight search engine built with Spring Boot and SQLite, featuring JWT authentication, role-based access control, and airline-specific admin permissions.
+A comprehensive flight search engine built with Spring Boot and SQLite, featuring session-based authentication, role-based access control, and airline-specific admin permissions.
+
+This is a project built for the SidPac @ MIT Web Chair Challenge -> Backend.
 
 ## Features
 
