@@ -462,6 +462,83 @@ class SecurityIntegrationTest {
     }
 
     /**
+     * Test: Logout functionality properly invalidates sessions
+     * Verifies that logout correctly removes session from database and prevents further access
+     * Tests the critical security functionality of session invalidation
+     */
+    @Test
+    void testLogout_ProperlyInvalidatesSession() throws Exception {
+        if (superAdminSessionId == null) return;
+
+        // Step 1: Verify session is valid by creating a flight
+        String flightJson = """
+            {
+                "flightNumber": "LOGOUT123",
+                "sourceAirportCode": "BOS",
+                "destinationAirportCode": "LAX",
+                "departureTime": "2025-12-01T10:00:00",
+                "arrivalTime": "2025-12-01T16:00:00",
+                "airlineCodes": ["AA"]
+            }
+            """;
+
+        mockMvc.perform(post("/api/flights")
+                .header("X-Session-ID", superAdminSessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(flightJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.flightNumber").value("LOGOUT123"));
+
+        // Step 2: Logout using the session ID
+        mockMvc.perform(post("/api/auth/logout")
+                .header("X-Session-ID", superAdminSessionId))
+                .andExpect(status().isOk());
+
+        // Step 3: Verify session is invalidated by attempting to create another flight
+        String anotherFlightJson = """
+            {
+                "flightNumber": "LOGOUT456",
+                "sourceAirportCode": "JFK",
+                "destinationAirportCode": "SFO",
+                "departureTime": "2025-12-01T14:00:00",
+                "arrivalTime": "2025-12-01T20:00:00",
+                "airlineCodes": ["AA"]
+            }
+            """;
+
+        mockMvc.perform(post("/api/flights")
+                .header("X-Session-ID", superAdminSessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(anotherFlightJson))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Test: Logout with invalid session ID
+     * Verifies that logout endpoint handles invalid session IDs gracefully
+     * Tests the robustness of the logout functionality
+     */
+    @Test
+    void testLogout_WithInvalidSessionId() throws Exception {
+        // Test logout with invalid session ID
+        mockMvc.perform(post("/api/auth/logout")
+                .header("X-Session-ID", "invalid-session-id"))
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Test: Logout without session header
+     * Verifies that logout endpoint requires session header
+     * Tests the security requirements for logout endpoint
+     */
+    @Test
+    void testLogout_WithoutSessionHeader() throws Exception {
+        // Test logout without session header
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
      * Test: Database data integrity for security testing
      * Verifies that the loaded test data supports security testing scenarios
      * Tests that the database initialization provides proper test data

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -60,9 +61,9 @@ public class AuthService {
         UserSession session = new UserSession(
                 user,
                 sessionId,
-                null, // No refresh token needed for session-based auth
+                "no-refresh-token", // Default value for session-based auth
                 LocalDateTime.now().plusHours(24), // 24 hour session
-                null // No refresh expiration
+                LocalDateTime.now().plusHours(24) // Same expiration as session
         );
         userSessionRepository.save(session);
         
@@ -94,20 +95,26 @@ public class AuthService {
         UserSession session = new UserSession(
                 user,
                 sessionId,
-                null, // No refresh token needed for session-based auth
+                "no-refresh-token", // Default value for session-based auth
                 LocalDateTime.now().plusHours(24), // 24 hour session
-                null // No refresh expiration
+                LocalDateTime.now().plusHours(24) // Same expiration as session
         );
         userSessionRepository.save(session);
         
         return new AuthResponse(sessionId, null, user.getRole().name());
     }
     
+    @Transactional
     public void logout(String sessionId) {
-        userSessionRepository.findByTokenHash(sessionId)
-                .ifPresent(session -> {
-                    userSessionRepository.delete(session);
-                });
+        // Check if session exists before attempting to delete
+        Optional<UserSession> sessionOpt = userSessionRepository.findByTokenHash(sessionId);
+        if (sessionOpt.isEmpty()) {
+            throw new RuntimeException("Invalid session ID");
+        }
+        
+        // Delete the session directly using the token hash
+        // This is more efficient and ensures immediate deletion
+        userSessionRepository.deleteByTokenHash(sessionId);
         
         // Clear security context
         SecurityContextHolder.clearContext();

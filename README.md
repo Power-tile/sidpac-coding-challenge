@@ -427,34 +427,6 @@ Each trip includes:
 - **404 Not Found**: No flights found for the specified route
 - **500 Internal Server Error**: System error during search
 
-### Testing the Search API
-
-1. **Start the application:**
-   ```bash
-   mvn spring-boot:run
-   ```
-
-2. **Verify the database is initialized:**
-   ```bash
-   sqlite3 data/flight_search.db "SELECT COUNT(*) as flights FROM flights;"
-   # Should return: 18
-   ```
-
-3. **Test a simple search:**
-   ```bash
-   curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destinationAirport=LAX" | jq
-   ```
-
-#### Expected Results Summary
-
-Based on the sample data, you should see:
-- **18 total flights** across 16 airlines
-- **20 airports** (US and international)
-- **Multiple fare options** with hub specials and discounts
-- **Codeshare flights** (e.g., AA123 is also operated by JetBlue)
-- **Multi-leg trip options** for complex routes
-- **International flights** (LHR→JFK, CDG→JFK, NRT→LAX)
-
 ### Authentication
 
 #### 1. Register a new admin user
@@ -510,12 +482,6 @@ curl -X POST http://localhost:8080/api/auth/logout \
 
 #### 12. Create a new flight (requires admin session)
 ```bash
-# First login to get session ID
-SESSION_ID=$(curl -s -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"usernameOrEmail": "admin", "password": "password123"}' | \
-  jq -r '.token')
-
 # Create flight using session ID
 curl -X POST http://localhost:8080/api/flights \
   -H "X-Session-ID: $SESSION_ID" \
@@ -530,9 +496,13 @@ curl -X POST http://localhost:8080/api/flights \
   }'
 ```
 
-**Expected Response:** `201 Created` with flight details
+**Expected Response:** `201 Created` with flight details. Then you can check the flight is successfully created by:
 
-#### 13. Update an existing flight
+```bash
+curl -X GET "http://localhost:8080/api/flights/<flight_id_from_POST_return_value>"
+```
+
+#### 13. Update an existing flight. Note departure time cannot be in the past for this.
 ```bash
 curl -X PUT http://localhost:8080/api/flights/flight-aa123-001 \
   -H "X-Session-ID: $SESSION_ID" \
@@ -614,6 +584,143 @@ curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=INVALID&de
 ### Run All Tests
 ```bash
 mvn test
+```
+
+### Test Coverage Summary
+
+The Flight Search Engine includes comprehensive test coverage across multiple layers and scenarios. All tests use realistic data and cover both happy path and error conditions.
+
+#### Test Files Overview
+
+**1. AuthControllerTest** (`src/test/java/edu/mit/sidpac/flightsearch/controller/AuthControllerTest.java`)
+- **Type**: Unit Tests (WebMvcTest with mocked services)
+- **Coverage**: Authentication and registration endpoints
+- **Test Scenarios**:
+  - ✅ Successful login with valid credentials (username and email)
+  - ✅ Login with airline admin credentials
+  - ✅ Login failure with invalid credentials
+  - ✅ Login failure with non-existent user
+  - ✅ Successful user registration
+  - ✅ Registration failure with duplicate username/email
+  - ✅ Registration validation (invalid email format, weak password, missing fields)
+  - ✅ Request validation (malformed JSON, empty request body)
+
+**2. FlightServiceTest** (`src/test/java/edu/mit/sidpac/flightsearch/service/FlightServiceTest.java`)
+- **Type**: Unit Tests (Mockito with mocked dependencies)
+- **Coverage**: Flight management business logic and permissions
+- **Test Scenarios**:
+  - ✅ Super admin can create flights for any airline
+  - ✅ Airline admin can create flights for their assigned airline only
+  - ✅ Airline admin cannot create flights for other airlines
+  - ✅ Flight creation with codeshare airlines (multiple airlines)
+  - ✅ Data validation (invalid airports, airlines, departure/arrival times)
+  - ✅ Flight update with valid/insufficient permissions
+  - ✅ Flight deletion with valid/insufficient permissions
+  - ✅ Error handling for non-existent flights
+
+**3. FlightSearchIntegrationTest** (`src/test/java/edu/mit/sidpac/flightsearch/integration/FlightSearchIntegrationTest.java`)
+- **Type**: Integration Tests (SpringBootTest with full database)
+- **Coverage**: End-to-end flight search and management functionality
+- **Test Scenarios**:
+  - ✅ Public flight search without authentication
+  - ✅ Flight search with specific departure time filtering
+  - ✅ International flight search (JFK to LHR)
+  - ✅ Public access to flight listings and airline-specific flights
+  - ✅ Super admin flight creation permissions
+  - ✅ Airline admin permissions and restrictions
+  - ✅ Unauthenticated access prevention for write operations
+  - ✅ Multi-leg flight search with complex pricing
+  - ✅ Database data integrity verification
+  - ✅ Application context loading validation
+
+**4. SecurityIntegrationTest** (`src/test/java/edu/mit/sidpac/flightsearch/integration/SecurityIntegrationTest.java`)
+- **Type**: Integration Tests (SpringBootTest with full security configuration)
+- **Coverage**: Security configuration and endpoint access control
+- **Test Scenarios**:
+  - ✅ Public endpoint accessibility (auth, search, read operations)
+  - ✅ Protected endpoint security (write operations require authentication)
+  - ✅ Session-based authentication validation
+  - ✅ Invalid/malformed session ID rejection
+  - ✅ Airline-specific admin permission enforcement
+  - ✅ Super admin unrestricted permissions
+  - ✅ Logout functionality and session invalidation
+  - ✅ Database data integrity for security testing
+
+**5. FareCalculationTest** (`src/test/java/edu/mit/sidpac/flightsearch/service/FareCalculationTest.java`)
+- **Type**: Unit Tests (SpringBootTest with full database and realistic data)
+- **Coverage**: Comprehensive fare calculation logic and pricing algorithms
+- **Test Scenarios**:
+  - ✅ Standard fare calculation (no restrictions apply)
+  - ✅ Hub special fare calculations (BOS, DFW, JFK, ATL, ORD, SFO, DEN, LAS)
+  - ✅ Early bird special pricing (departures before 09:00)
+  - ✅ Multi-leg discount pricing (2+ leg connecting flights)
+  - ✅ Lowest fare selection when multiple fares apply
+  - ✅ Complex scenarios with multiple applicable restrictions
+  - ✅ Fare restriction validation (ENDPOINT, DEPARTURE_TIME, MULTI_LEG)
+  - ✅ Multiple restriction validation (fares with multiple conditions)
+  - ✅ No applicable fares scenario handling
+  - ✅ Cross-airline fare comparison (AA, DL, UA, B6, WN)
+  - ✅ Numerical accuracy verification with expected pricing values
+
+**6. FlightSearchEngineApplicationTests** (`src/test/java/edu/mit/sidpac/flightsearch/FlightSearchEngineApplicationTests.java`)
+- **Type**: Application Tests (SpringBootTest with full application context)
+- **Coverage**: Complete application functionality and configuration
+- **Test Scenarios**:
+  - ✅ Spring application context loading
+  - ✅ Database data integrity (5 users, 20 airports, 16 airlines, 18 flights)
+  - ✅ Authentication service functionality
+  - ✅ Flight search service with realistic data
+  - ✅ Flight service CRUD operations
+  - ✅ Permission service for different user types
+  - ✅ Fare service and pricing calculations
+  - ✅ Repository functionality across all entities
+  - ✅ End-to-end application workflow
+
+#### Test Data and Environment
+
+**Database Setup**:
+- Uses SQLite test database with complete schema
+- Loads comprehensive test data via `TestDatabaseSetup`
+- Includes 5 admin users (1 super admin + 4 airline-specific admins)
+- Contains 20 airports, 16 airlines, 18 flights, 25+ fare rules
+- All tests use `@Transactional` for data isolation
+
+**Test Configuration**:
+- Separate test profile (`application-test.yml`)
+- Mocked security configuration for unit tests
+- Full Spring Boot context for integration tests
+- JPA auditing configuration for test environment
+
+#### Test Statistics
+
+- **Total Test Files**: 6
+- **Total Test Methods**: 60+ individual test scenarios
+- **Coverage Areas**:
+  - Authentication & Authorization: 15+ tests
+  - Flight Management: 20+ tests
+  - Fare Calculation & Pricing: 15+ tests
+  - Security & Permissions: 15+ tests
+  - Data Integrity: 10+ tests
+  - End-to-End Workflows: 5+ tests
+
+#### Running Specific Test Categories
+
+```bash
+# Run all tests
+mvn test
+
+# Run only unit tests
+mvn test -Dtest="*Test" -DfailIfNoTests=false
+
+# Run only integration tests
+mvn test -Dtest="*IntegrationTest" -DfailIfNoTests=false
+
+# Run specific test class
+mvn test -Dtest="AuthControllerTest"
+mvn test -Dtest="FareCalculationTest"
+
+# Run with detailed output
+mvn test -X
 ```
 
 ## Database Schema

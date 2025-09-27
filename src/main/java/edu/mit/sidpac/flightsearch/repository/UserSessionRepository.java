@@ -34,4 +34,8 @@ public interface UserSessionRepository extends JpaRepository<UserSession, String
     @Modifying
     @Query("DELETE FROM UserSession s WHERE s.refreshExpiresAt < :now")
     void deleteExpiredRefreshTokens(@Param("now") LocalDateTime now);
+    
+    @Modifying
+    @Query("DELETE FROM UserSession s WHERE s.tokenHash = :tokenHash")
+    void deleteByTokenHash(@Param("tokenHash") String tokenHash);
 }

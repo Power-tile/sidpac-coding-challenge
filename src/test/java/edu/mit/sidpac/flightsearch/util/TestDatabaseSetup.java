@@ -403,6 +403,10 @@ public class TestDatabaseSetup {
             restriction.setRestrictionType(restrictionType);
             restriction.setRestrictionValue(restrictionValue);
             fareRestrictionRepository.save(restriction);
+            
+            // Ensure the restriction is added to the fare's restrictions set
+            fare.getRestrictions().add(restriction);
+            fareRepository.save(fare);
         }
     }
 }
