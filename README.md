@@ -11,8 +11,14 @@ This is a project built for the SidPac @ MIT Web Chair Challenge -> Backend.
 - **Flight Search**: Advanced search with pricing calculations and multi-leg trip support
 - **Authentication & Authorization**: session-based authentication with role-based access control
 - **Airline-Specific Permissions**: Admins can be assigned to specific airlines for management
-- **Zero-Configuration Database**: Uses SQLite - no database server setup required!
-- **Comprehensive Testing**: Unit, integration, and end-to-end tests
+- **Comprehensive Testing**: Unit, integration, and end-to-end tests (see test section!)
+
+### Next Steps in Development
+
+- Multi-leg flight options that exceeds two legs.
+- More adequate documentations for API output types and structure & classes.
+- API for airlines' fare restrictions CRUD.
+- Web API for easier information setup.
 
 ## Prerequisites
 
@@ -62,7 +68,7 @@ mvn clean compile
 # Run the application
 mvn spring-boot:run
 
-# Or, to run tests
+# Or, to run tests (There is a comprehensive list of all test cases later below)
 mvn test
 ```
 
@@ -151,121 +157,16 @@ The database comes pre-loaded with comprehensive test data:
 
 This section provides working examples using the actual sample data loaded in the database. All examples are based on the flights, airlines, and fares created by the initialization script.
 
-### Flight Management (Public Endpoints)
-
-#### 1. List all flights
-```bash
-curl -X GET "http://localhost:8080/api/flights"
-```
-
-**Expected Response:** Array of 18 flights with details like:
-```json
-[
-  {
-    "id": "flight-aa123-001",
-    "createdAt": "2025-09-26T18:00:00",
-    "updatedAt": "2025-09-26T18:00:00",
-    "flightNumber": "AA123",
-    "sourceAirport": {
-      "id": "airport-bos-001",
-      "createdAt": "2025-09-26T18:00:00",
-      "updatedAt": "2025-09-26T18:00:00",
-      "code": "BOS",
-      "name": "Logan International Airport",
-      "city": "Boston",
-      "country": "USA",
-      "location": "Boston, USA"
-    },
-    "destinationAirport": {
-      "id": "airport-lax-001",
-      "createdAt": "2025-09-26T18:00:00",
-      "updatedAt": "2025-09-26T18:00:00",
-      "code": "LAX",
-      "name": "Los Angeles International Airport",
-      "city": "Los Angeles",
-      "country": "USA",
-      "location": "Los Angeles, USA"
-    },
-    "departureTime": "2024-03-20T09:30:00",
-    "arrivalTime": "2024-03-20T15:30:00",
-    "flightAirlines": [
-      {
-        "id": "fa-aa123-b6-001",
-        "createdAt": "2025-09-26T18:00:00",
-        "updatedAt": null,
-        "airline": {
-          "id": "airline-b6-001",
-          "createdAt": "2025-09-26T18:00:00",
-          "updatedAt": "2025-09-26T18:00:00",
-          "code": "B6",
-          "name": "JetBlue Airways",
-          "country": "USA"
-        }
-      },
-      {
-        "id": "fa-aa123-aa-001",
-        "createdAt": "2025-09-26T18:00:00",
-        "updatedAt": null,
-        "airline": {
-          "id": "airline-aa-001",
-          "createdAt": "2025-09-26T18:00:00",
-          "updatedAt": "2025-09-26T18:00:00",
-          "code": "AA",
-          "name": "American Airlines",
-          "country": "USA"
-        }
-      }
-    ],
-    "sourceAirportCode": "BOS",
-    "destinationAirportCode": "LAX",
-    "durationInMinutes": 360,
-    "route": "BOS → LAX",
-    "airlineCode": "B6"
-  }
-]
-```
-
-#### 2. Get specific flight by ID
-```bash
-curl -X GET "http://localhost:8080/api/flights/flight-aa123-001"
-```
-
-#### 63 Search flights by route (BOS to LAX)
-```bash
-curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX"
-```
-
-**Expected Response:** Array of flights from BOS to LAX, including:
-- AA123 (American Airlines, 09:30-15:30)
-- DL789 (Delta, 10:00-16:30) 
-- B6-501 (JetBlue, 16:00-19:30)
-
-#### 4. Search flights by route and time
-```bash
-curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX&departureTime=2024-03-20T09:30:00"
-```
-
-#### 5. Get flights by airline
-```bash
-curl -X GET "http://localhost:8080/api/flights/airline/AA"
-```
-
-**Expected Response:** Array of American Airlines flights including:
-- AA123 (BOS→LAX)
-- AA456 (LAX→BOS)
-- AA789 (JFK→MIA)
-- AA101 (DFW→LAX)
-
-## Advanced Flight Search Guide
+### Advanced Flight Search Guide
 
 The flight search engine provides comprehensive search capabilities with pricing, multi-leg routing, and time-based filtering. All search endpoints are public and do not require authentication.
 
-### Search Endpoints
+#### Search Endpoints
 
 - **GET** `/api/flights/planning` - Advanced search with pricing and multi-leg support
 - **GET** `/api/flights/search?source=AAA&destination=BBB[&departureTime=ISO]` - Basic flight search
 
-### Search Request Format
+#### Search Request Format
 
 **Query Parameters:**
 - `sourceAirport` (required): 3-letter airport code (e.g., "BOS")
@@ -432,18 +333,6 @@ curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destin
 curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destinationAirport=LAX&departureTime=2024-03-20T07:00:00"
 ```
 
-#### Popular Route Examples
-```bash
-# JFK to LAX
-curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=JFK&destinationAirport=LAX"
-
-# International routes
-curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=LHR&destinationAirport=JFK"
-
-# Hub-to-hub connections
-curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=ATL&destinationAirport=LAX"
-```
-
 ### Understanding the Pricing System
 
 The flight search engine uses a sophisticated fare pricing system with multiple fare types and restrictions:
@@ -506,6 +395,111 @@ The flight search engine uses a sophisticated fare pricing system with multiple 
 - BOS Hub Special: $150
 - Early Bird Special: $175 (departure before 09:00)
 - **Final Price: $150** (lowest applicable fare)
+
+### Flight Management (Public Endpoints)
+
+#### 1. List all flights
+```bash
+curl -X GET "http://localhost:8080/api/flights"
+```
+
+**Expected Response:** Array of 18 flights with details like:
+```json
+[
+  {
+    "id": "flight-aa123-001",
+    "createdAt": "2025-09-26T18:00:00",
+    "updatedAt": "2025-09-26T18:00:00",
+    "flightNumber": "AA123",
+    "sourceAirport": {
+      "id": "airport-bos-001",
+      "createdAt": "2025-09-26T18:00:00",
+      "updatedAt": "2025-09-26T18:00:00",
+      "code": "BOS",
+      "name": "Logan International Airport",
+      "city": "Boston",
+      "country": "USA",
+      "location": "Boston, USA"
+    },
+    "destinationAirport": {
+      "id": "airport-lax-001",
+      "createdAt": "2025-09-26T18:00:00",
+      "updatedAt": "2025-09-26T18:00:00",
+      "code": "LAX",
+      "name": "Los Angeles International Airport",
+      "city": "Los Angeles",
+      "country": "USA",
+      "location": "Los Angeles, USA"
+    },
+    "departureTime": "2024-03-20T09:30:00",
+    "arrivalTime": "2024-03-20T15:30:00",
+    "flightAirlines": [
+      {
+        "id": "fa-aa123-b6-001",
+        "createdAt": "2025-09-26T18:00:00",
+        "updatedAt": null,
+        "airline": {
+          "id": "airline-b6-001",
+          "createdAt": "2025-09-26T18:00:00",
+          "updatedAt": "2025-09-26T18:00:00",
+          "code": "B6",
+          "name": "JetBlue Airways",
+          "country": "USA"
+        }
+      },
+      {
+        "id": "fa-aa123-aa-001",
+        "createdAt": "2025-09-26T18:00:00",
+        "updatedAt": null,
+        "airline": {
+          "id": "airline-aa-001",
+          "createdAt": "2025-09-26T18:00:00",
+          "updatedAt": "2025-09-26T18:00:00",
+          "code": "AA",
+          "name": "American Airlines",
+          "country": "USA"
+        }
+      }
+    ],
+    "sourceAirportCode": "BOS",
+    "destinationAirportCode": "LAX",
+    "durationInMinutes": 360,
+    "route": "BOS → LAX",
+    "airlineCode": "B6"
+  }
+]
+```
+
+#### 2. Get specific flight by ID
+```bash
+curl -X GET "http://localhost:8080/api/flights/flight-aa123-001"
+```
+
+#### 3. Search flights by route (BOS to LAX)
+```bash
+curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX"
+```
+
+**Expected Response:** Array of flights from BOS to LAX, including:
+- AA123 (American Airlines, 09:30-15:30)
+- DL789 (Delta, 10:00-16:30) 
+- B6-501 (JetBlue, 16:00-19:30)
+
+#### 4. Search flights by route and time
+```bash
+curl -X GET "http://localhost:8080/api/flights/search?source=BOS&destination=LAX&departureTime=2024-03-20T09:30:00"
+```
+
+#### 5. Get flights by airline
+```bash
+curl -X GET "http://localhost:8080/api/flights/airline/AA"
+```
+
+**Expected Response:** Array of American Airlines flights including:
+- AA123 (BOS→LAX)
+- AA456 (LAX→BOS)
+- AA789 (JFK→MIA)
+- AA101 (DFW→LAX)
 
 ### Response Format
 
