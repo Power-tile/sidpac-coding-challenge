@@ -151,37 +151,64 @@ curl -X GET "http://localhost:8080/api/flights"
 [
   {
     "id": "flight-aa123-001",
+    "createdAt": "2025-09-26T18:00:00",
+    "updatedAt": "2025-09-26T18:00:00",
     "flightNumber": "AA123",
     "sourceAirport": {
       "id": "airport-bos-001",
+      "createdAt": "2025-09-26T18:00:00",
+      "updatedAt": "2025-09-26T18:00:00",
       "code": "BOS",
       "name": "Logan International Airport",
       "city": "Boston",
-      "country": "USA"
+      "country": "USA",
+      "location": "Boston, USA"
     },
     "destinationAirport": {
-      "id": "airport-lax-001", 
+      "id": "airport-lax-001",
+      "createdAt": "2025-09-26T18:00:00",
+      "updatedAt": "2025-09-26T18:00:00",
       "code": "LAX",
       "name": "Los Angeles International Airport",
       "city": "Los Angeles",
-      "country": "USA"
+      "country": "USA",
+      "location": "Los Angeles, USA"
     },
     "departureTime": "2024-03-20T09:30:00",
     "arrivalTime": "2024-03-20T15:30:00",
-    "airlines": [
+    "flightAirlines": [
       {
-        "id": "airline-aa-001",
-        "code": "AA",
-        "name": "American Airlines",
-        "country": "USA"
+        "id": "fa-aa123-b6-001",
+        "createdAt": "2025-09-26T18:00:00",
+        "updatedAt": null,
+        "airline": {
+          "id": "airline-b6-001",
+          "createdAt": "2025-09-26T18:00:00",
+          "updatedAt": "2025-09-26T18:00:00",
+          "code": "B6",
+          "name": "JetBlue Airways",
+          "country": "USA"
+        }
       },
       {
-        "id": "airline-b6-001",
-        "code": "B6", 
-        "name": "JetBlue Airways",
-        "country": "USA"
+        "id": "fa-aa123-aa-001",
+        "createdAt": "2025-09-26T18:00:00",
+        "updatedAt": null,
+        "airline": {
+          "id": "airline-aa-001",
+          "createdAt": "2025-09-26T18:00:00",
+          "updatedAt": "2025-09-26T18:00:00",
+          "code": "AA",
+          "name": "American Airlines",
+          "country": "USA"
+        }
       }
-    ]
+    ],
+    "sourceAirportCode": "BOS",
+    "destinationAirportCode": "LAX",
+    "durationInMinutes": 360,
+    "route": "BOS → LAX",
+    "airlineCode": "B6"
   }
 ]
 ```
@@ -272,48 +299,111 @@ curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destin
     {
       "airline": "B6",
       "totalPrice": 130,
-      "totalDuration": 360,
       "flights": [
         {
           "id": "flight-aa123-001",
+          "createdAt": "2025-09-26T18:00:00",
+          "updatedAt": "2025-09-26T18:00:00",
           "flightNumber": "AA123",
           "sourceAirport": {
+            "id": "airport-bos-001",
+            "createdAt": "2025-09-26T18:00:00",
+            "updatedAt": "2025-09-26T18:00:00",
             "code": "BOS",
-            "name": "Logan International Airport"
+            "name": "Logan International Airport",
+            "city": "Boston",
+            "country": "USA",
+            "location": "Boston, USA"
           },
           "destinationAirport": {
-            "code": "LAX", 
-            "name": "Los Angeles International Airport"
+            "id": "airport-lax-001",
+            "createdAt": "2025-09-26T18:00:00",
+            "updatedAt": "2025-09-26T18:00:00",
+            "code": "LAX",
+            "name": "Los Angeles International Airport",
+            "city": "Los Angeles",
+            "country": "USA",
+            "location": "Los Angeles, USA"
           },
           "departureTime": "2024-03-20T09:30:00",
-          "arrivalTime": "2024-03-20T15:30:00"
+          "arrivalTime": "2024-03-20T15:30:00",
+          "flightAirlines": [
+            {
+              "id": "fa-aa123-b6-001",
+              "createdAt": "2025-09-26T18:00:00",
+              "updatedAt": null,
+              "airline": {
+                "id": "airline-b6-001",
+                "createdAt": "2025-09-26T18:00:00",
+                "updatedAt": "2025-09-26T18:00:00",
+                "code": "B6",
+                "name": "JetBlue Airways",
+                "country": "USA"
+              }
+            }
+          ],
+          "sourceAirportCode": "BOS",
+          "destinationAirportCode": "LAX",
+          "durationInMinutes": 360,
+          "route": "BOS → LAX",
+          "airlineCode": "B6"
         }
       ],
+      "totalDuration": 360,
+      "route": "BOS → LAX",
+      "airlineCode": "B6",
       "legCount": 1,
-      "direct": true
-    },
-    {
-      "airline": "UA",
-      "totalPrice": 140,
-      "totalDuration": 330,
-      "flights": [
+      "legs": [
         {
-          "flightNumber": "UA101",
-          "sourceAirport": {"code": "BOS"},
-          "destinationAirport": {"code": "ORD"},
-          "departureTime": "2024-03-20T08:00:00",
-          "arrivalTime": "2024-03-20T10:30:00"
-        },
-        {
-          "flightNumber": "UA102", 
-          "sourceAirport": {"code": "ORD"},
-          "destinationAirport": {"code": "LAX"},
-          "departureTime": "2024-03-20T12:00:00",
-          "arrivalTime": "2024-03-20T15:00:00"
+          "id": "flight-aa123-001",
+          "createdAt": "2025-09-26T18:00:00",
+          "updatedAt": "2025-09-26T18:00:00",
+          "flightNumber": "AA123",
+          "sourceAirport": {
+            "id": "airport-bos-001",
+            "createdAt": "2025-09-26T18:00:00",
+            "updatedAt": "2025-09-26T18:00:00",
+            "code": "BOS",
+            "name": "Logan International Airport",
+            "city": "Boston",
+            "country": "USA",
+            "location": "Boston, USA"
+          },
+          "destinationAirport": {
+            "id": "airport-lax-001",
+            "createdAt": "2025-09-26T18:00:00",
+            "updatedAt": "2025-09-26T18:00:00",
+            "code": "LAX",
+            "name": "Los Angeles International Airport",
+            "city": "Los Angeles",
+            "country": "USA",
+            "location": "Los Angeles, USA"
+          },
+          "departureTime": "2024-03-20T09:30:00",
+          "arrivalTime": "2024-03-20T15:30:00",
+          "flightAirlines": [
+            {
+              "id": "fa-aa123-b6-001",
+              "createdAt": "2025-09-26T18:00:00",
+              "updatedAt": null,
+              "airline": {
+                "id": "airline-b6-001",
+                "createdAt": "2025-09-26T18:00:00",
+                "updatedAt": "2025-09-26T18:00:00",
+                "code": "B6",
+                "name": "JetBlue Airways",
+                "country": "USA"
+              }
+            }
+          ],
+          "sourceAirportCode": "BOS",
+          "destinationAirportCode": "LAX",
+          "durationInMinutes": 360,
+          "route": "BOS → LAX",
+          "airlineCode": "B6"
         }
       ],
-      "legCount": 2,
-      "direct": false
+      "direct": true
     }
   ],
   "searchCriteria": {
@@ -321,7 +411,7 @@ curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=BOS&destin
     "destinationAirport": "LAX",
     "departureTime": null
   },
-  "totalResults": 2
+  "totalResults": 6
 }
 ```
 
@@ -423,8 +513,8 @@ Each trip includes:
 
 ### Error Handling
 
-- **400 Bad Request**: Invalid airport codes or malformed request
-- **404 Not Found**: No flights found for the specified route
+- **200 OK with empty results**: Invalid airport codes or no flights found for the specified route
+- **400 Bad Request**: Malformed request or invalid data format
 - **500 Internal Server Error**: System error during search
 
 ### Authentication
@@ -483,7 +573,7 @@ curl -X POST http://localhost:8080/api/auth/logout \
 
 ### Flight Management (Admin Endpoints)
 
-#### 12. Create a new flight (requires admin session)
+#### 12. Create a new flight (requires admin session, and only works for future dates)
 ```bash
 # Create flight using session ID
 curl -X POST http://localhost:8080/api/flights \
@@ -493,8 +583,8 @@ curl -X POST http://localhost:8080/api/flights \
     "flightNumber": "AA999",
     "sourceAirportCode": "BOS",
     "destinationAirportCode": "SFO",
-    "departureTime": "2024-03-20T11:00:00",
-    "arrivalTime": "2024-03-20T17:30:00",
+    "departureTime": "2026-03-20T11:00:00",
+    "arrivalTime": "2026-03-20T17:30:00",
     "airlineCodes": ["AA"]
   }'
 ```
@@ -514,8 +604,8 @@ curl -X PUT http://localhost:8080/api/flights/flight-aa123-001 \
     "flightNumber": "AA123",
     "sourceAirportCode": "BOS",
     "destinationAirportCode": "LAX",
-    "departureTime": "2024-03-20T10:00:00",
-    "arrivalTime": "2024-03-20T16:00:00",
+    "departureTime": "2026-03-20T10:00:00",
+    "arrivalTime": "2026-03-20T16:00:00",
     "airlineCodes": ["AA", "B6"]
   }'
 ```
@@ -535,7 +625,7 @@ curl -X DELETE http://localhost:8080/api/flights/flight-aa123-001 \
 curl -X POST http://localhost:8080/api/flights \
   -H "X-Session-ID: invalid-session-id" \
   -H "Content-Type: application/json" \
-  -d '{"flightNumber": "AA999", "sourceAirportCode": "BOS", "destinationAirportCode": "SFO", "departureTime": "2024-03-20T11:00:00", "arrivalTime": "2024-03-20T17:30:00", "airlineCodes": ["AA"]}'
+  -d '{"flightNumber": "AA999", "sourceAirportCode": "BOS", "destinationAirportCode": "SFO", "departureTime": "2026-03-20T11:00:00", "arrivalTime": "2026-03-20T17:30:00", "airlineCodes": ["AA"]}'
 ```
 
 **Expected Response:** `401 Unauthorized`
@@ -556,8 +646,8 @@ curl -X POST http://localhost:8080/api/flights \
     "flightNumber": "DL999",
     "sourceAirportCode": "BOS",
     "destinationAirportCode": "LAX",
-    "departureTime": "2024-03-20T11:00:00",
-    "arrivalTime": "2024-03-20T17:30:00",
+    "departureTime": "2026-03-20T11:00:00",
+    "arrivalTime": "2026-03-20T17:30:00",
     "airlineCodes": ["DL"]
   }'
 ```
@@ -569,7 +659,18 @@ curl -X POST http://localhost:8080/api/flights \
 curl -X GET "http://localhost:8080/api/flights/planning?sourceAirport=INVALID&destinationAirport=LAX"
 ```
 
-**Expected Response:** `400 Bad Request`
+**Expected Response:** `200 OK` with empty results:
+```json
+{
+  "trips": [],
+  "searchCriteria": {
+    "sourceAirport": "INVALID",
+    "destinationAirport": "LAX",
+    "departureTime": null
+  },
+  "totalResults": 0
+}
+```
 
 
 
